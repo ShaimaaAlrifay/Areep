@@ -1,0 +1,76 @@
+/* ============================================================
+   Gemini caller. Ported from server/providers/GeminiProvider.js.
+
+   The HTTP shape is unchanged and deliberately so — the URL, the
+   system_instruction + multi-turn `contents` body, and the
+   responseMimeType that forces JSON are all already proven against real
+   Gemini behaviour. Do not "tidy" them without re-testing live.
+
+   Three things differ from the Node original:
+
+   1. process.env -> Deno.env.get. The keys now come from Supabase
+      Secrets and never reach the browser.
+   2. Key rotation no longer loops internally. The caller composes one
+      Attempt per key (see chain.ts) so that each key gets its own slice
+      of the time budget and the whole chain stays bounded. Rotation that
+      hid inside this function could silently double a request's duration.
+   3. Every call takes an AbortSignal, so a hung request is cut off
+      instead of consuming the function's 150s wall clock.
+   ============================================================ */
+
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
+
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+/**
+ * Free-tier Gemini keys are capped per day, so a second key (a separate
+ * AI Studio project, same owner and model) doubles the ceiling.
+ * GEMINI_API_KEY2 is optional — the list simply gets shorter without it.
+ */
+export function geminiKeys(): string[] {
+  return [Deno.env.get('GEMINI_API_KEY'), Deno.env.get('GEMINI_API_KEY2')].filter(
+    (key): key is string => Boolean(key && key.trim()),
+  )
+}
+
+/** @returns raw text — the caller parses, de-fences and shape-validates it. */
+export async function callGemini(
+  apiKey: string,
+  systemPrompt: string,
+  messages: ChatMessage[],
+  signal: AbortSignal,
+): Promise<string> {
+  const contents = messages.map((message) => ({
+    role: message.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: message.content }],
+  }))
+
+  const response = await fetch(GEMINI_URL, {
+    method: 'POST',
+    signal,
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: systemPrompt }] },
+      contents,
+      generationConfig: { responseMimeType: 'application/json' },
+    }),
+  })
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '')
+    throw new Error(`Gemini responded with ${response.status}: ${detail.slice(0, 200)}`)
+  }
+
+  const data = await response.json()
+  const text = (data.candidates || [])
+    .flatMap((candidate: { content?: { parts?: { text?: string }[] } }) => candidate?.content?.parts || [])
+    .map((part: { text?: string }) => part?.text || '')
+    .filter(Boolean)
+    .join('\n')
+
+  if (!text) throw new Error('Gemini returned no text content')
+  return text
+}

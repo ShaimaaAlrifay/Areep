@@ -1,0 +1,38 @@
+# Netlify build configuration.
+#
+# The two VITE_ values below are here rather than in the Netlify UI on
+# purpose: neither is a secret (the site URL is the public address, and the
+# contact address is printed on the privacy and terms pages), and both are
+# read at BUILD time. Keeping them in the repo means a fresh clone or a new
+# Netlify site builds correctly with no out-of-band setup, and that the
+# canonical host can be reviewed in a diff.
+#
+# Secrets stay OUT of this file. VITE_SUPABASE_URL and
+# VITE_SUPABASE_ANON_KEY are set in the Netlify UI.
+#
+# VITE_AREEP_API_URL is deliberately absent. Setting it would route every
+# visitor's browser to the legacy Express backend in server/ instead of the
+# Supabase Edge Functions, losing both the JWT protection and the secret
+# storage this migration exists for. See .env.example.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # Drives canonical URLs, og:url, og:image and whether sitemap.xml is
+  # generated at all — see vite/seoPlugin.js, which warns and omits them
+  # rather than guessing a domain when this is unset.
+  VITE_SITE_URL = "https://areep.netlify.app"
+  VITE_CONTACT_EMAIL = "areep.sa@gmail.com"
+  NODE_VERSION = "22"
+
+# The SPA fallback also lives in public/_redirects. That duplication is
+# intentional: _redirects is emitted into dist/ and therefore survives a
+# manual drag-and-drop deploy, where this file — which lives at the repo
+# root and is only read by a git-triggered build — would not apply at all.
+# Both express the same rule, so whichever one wins, the result is the same.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

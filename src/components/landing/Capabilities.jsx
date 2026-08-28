@@ -1,0 +1,151 @@
+import { useInView } from '../../hooks/useInView'
+
+/* ============================================================
+   Capabilities as editorial rows, not a card grid.
+
+   Each row is a claim on one side and the evidence for it on the other —
+   an actual fragment of product output rather than an icon. Every number
+   and label here is real: the seven requirement types and their id
+   prefixes come from the discovery prompt, the MoSCoW values from the
+   database's own check constraint, and the fallback behaviour from how
+   the server chain is actually wired.
+   ============================================================ */
+
+const ROWS = [
+  {
+    k: 'الاكتشاف',
+    title: 'يسأل عمّا نسيت أن تذكره.',
+    body: 'سؤال أو سؤالان في كل رد، بالترتيب: المشكلة ثم المستخدم ثم السيناريو. ولا يقترح حلًا قبل أن يفهم — القاعدة مكتوبة في تعليماته، لا متروكة لتقديره.',
+    proof: {
+      kind: 'lines',
+      label: 'ما زال ناقصًا',
+      items: ['الفئة المستهدفة بدقة', 'حجم الاستخدام المتوقع', 'قناة التواصل المفضّلة'],
+    },
+  },
+  {
+    k: 'الاستخراج',
+    title: 'كل جملة تصير عنصرًا له معرّف.',
+    body: 'سبعة أنواع — هدف، مستخدم، ميزة، متطلب وظيفي، غير وظيفي، خطر، افتراض — كل نوع بترقيمه الخاص الذي لا يتغيّر عبر الجلسة.',
+    proof: {
+      kind: 'chips',
+      label: 'أنواع المتطلبات',
+      items: ['GOAL', 'USER', 'FEAT', 'FR', 'NFR', 'RISK', 'ASM'],
+    },
+  },
+  {
+    k: 'المراجعة',
+    title: 'الوثيقة تُبنى ممّا اعتمدته أنت.',
+    body: 'قبل التوليد تمرّ على كل عنصر: عدّل صياغته، اضبط أولويته، احذفه، أو أضِف متطلبًا فات أريب. لا شيء يدخل الوثيقة دون أن تراه.',
+    proof: {
+      kind: 'moscow',
+      label: 'الأولويات',
+      items: ['إلزامي', 'مفضّل', 'اختياري', 'مؤجل'],
+    },
+  },
+  {
+    k: 'الاستمرارية',
+    title: 'لا يتوقف لأن مزوّدًا واحدًا تعثّر.',
+    body: 'مسار المحادثة ومسار توليد الوثيقة لكل منهما مزوّد أساسي وبديل يتولّى تلقائيًا عند الفشل، مع تحقق من شكل الرد قبل أن يصل إليك.',
+    proof: {
+      kind: 'chain',
+      label: 'سلسلة التشغيل',
+      items: [
+        ['المحادثة', 'Gemini', 'Groq'],
+        ['الوثيقة', 'Groq', 'Gemini'],
+      ],
+    },
+  },
+]
+
+function Proof({ proof }) {
+  if (proof.kind === 'chips') {
+    return (
+      <div className="lp-proof">
+        <span className="lp-label">{proof.label}</span>
+        <div className="lp-proof-chips">
+          {proof.items.map((item) => (
+            <span key={item} className="lp-num lp-proof-chip">
+              {item}
+            </span>
+          ))}
+        </div>
+      </div>
+    )
+  }
+  if (proof.kind === 'moscow') {
+    return (
+      <div className="lp-proof">
+        <span className="lp-label">{proof.label}</span>
+        <div className="lp-proof-chips">
+          {proof.items.map((item, i) => (
+            <span key={item} className={`lp-proof-pill${i === 0 ? ' is-solid' : ''}`}>
+              {item}
+            </span>
+          ))}
+        </div>
+      </div>
+    )
+  }
+  if (proof.kind === 'chain') {
+    return (
+      <div className="lp-proof">
+        <span className="lp-label">{proof.label}</span>
+        <div className="lp-proof-chains">
+          {proof.items.map(([what, primary, fallback]) => (
+            <span key={what} className="lp-chain">
+              <span className="lp-chain-what">{what}</span>
+              <span className="lp-num">{primary}</span>
+              <span className="lp-chain-arrow" aria-hidden="true">
+                ←
+              </span>
+              <span className="lp-num lp-chain-fb">{fallback}</span>
+            </span>
+          ))}
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="lp-proof">
+      <span className="lp-label">{proof.label}</span>
+      <ul className="lp-proof-lines">
+        {proof.items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function Row({ row, index }) {
+  const [ref, inView] = useInView({ threshold: 0.25 })
+  return (
+    <article ref={ref} className={`lp-cap${inView ? ' is-in' : ''}`} style={{ '--i': index }}>
+      <div className="lp-cap-copy">
+        <span className="lp-cap-k">{row.k}</span>
+        <h3 className="lp-cap-title">{row.title}</h3>
+        <p className="lp-cap-body">{row.body}</p>
+      </div>
+      <Proof proof={row.proof} />
+    </article>
+  )
+}
+
+export function Capabilities() {
+  return (
+    <section className="lp-caps" id="capabilities" aria-labelledby="caps-heading">
+      <div className="lp-shell">
+        <p className="lp-eyebrow">المزايا</p>
+        <h2 id="caps-heading" className="lp-h2">
+          أربع قرارات تصميم
+          <span className="lp-h2-dim"> تفرّقه عن محادثة عادية.</span>
+        </h2>
+        <div className="lp-cap-rows">
+          {ROWS.map((row, i) => (
+            <Row key={row.k} row={row} index={i} />
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}

@@ -1,0 +1,23 @@
+# Supabase project configuration.
+#
+# Only the Edge Functions section is set deliberately here — Auth, the
+# database and Storage are managed from the dashboard and are untouched by
+# this migration.
+
+project_id = "dqtgcqlaaagimghpiuix"
+
+# verify_jwt = true is the platform default, and is stated explicitly here
+# because it is the security property this migration exists to gain. The
+# Express version of /api/discovery was reachable by anyone who knew the
+# URL — it spent Gemini and Groq quota for unauthenticated callers. With
+# this, the platform rejects any request without a valid Supabase Auth JWT
+# before the handler (and therefore any API key) is ever reached.
+#
+# supabase.functions.invoke() attaches the signed-in user's access token
+# automatically, so the frontend needs no extra code for this.
+
+[functions.discovery]
+verify_jwt = true
+
+[functions.prd]
+verify_jwt = true

@@ -1,0 +1,12 @@
+# Netlify SPA fallback.
+#
+# Without this, every route this app owns except "/" returns Netlify's own
+# 404: /login, /privacy, /faq and every /chat/** deep link. Verified live on
+# areep.netlify.app before this file existed — a user who refreshed the page
+# while signed in was thrown out to a hosting error.
+#
+# Real files on disk win over this rule, so /robots.txt, /sitemap.xml,
+# /favicon.svg and everything under /assets/ are still served as themselves.
+# The 200 (rather than a redirect) is what keeps the URL in the address bar
+# intact so React Router can read it.
+/*  /index.html  200

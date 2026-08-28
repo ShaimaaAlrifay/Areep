@@ -137,6 +137,12 @@
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
 
   color-scheme: dark;
+
+  /* In-page anchors ease rather than jump. Declared here rather than in
+     landing.css so it also covers the FAQ page's deep links, and disabled
+     wholesale under prefers-reduced-motion below — a smooth scroll is
+     motion, and someone who asked for less of it means this too. */
+  scroll-behavior: smooth;
   font-family: var(--font-arabic);
   font-size: 16px;
   line-height: 1.6;
@@ -1960,4 +1966,36 @@ button:focus-visible {
 
 .form-note a:hover {
   color: var(--color-text);
+}
+
+
+/* ------------------------------------------------------------
+   Reduced motion, globally.
+
+   The app had no such block at all: every transition and the smooth
+   scroll above ran regardless of the setting. Durations are collapsed
+   rather than removed so that transitionend handlers still fire and no
+   state machine waiting on one can stall.
+
+   Scroll-margin is here rather than in landing.css because it is a
+   layout fact about the fixed header, not a stylistic one: without it
+   every in-page anchor lands with its heading hidden behind the nav.
+   ------------------------------------------------------------ */
+:target,
+[id] {
+  scroll-margin-block-start: 96px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
