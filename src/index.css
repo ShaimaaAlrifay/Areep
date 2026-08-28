@@ -1,0 +1,1175 @@
+/* ============================================================
+   أريب (Areep) — design system
+   Dark-first, quiet, editorial, technical. Palette: near-black
+   surfaces + grayscale + one restrained indigo accent, used
+   sparingly (primary CTA, active sidebar row, focus rings —
+   never gradients, never glow).
+   Spacing scale: 4/8/12/16/24/32/48/64. Radius: 8–16px.
+   RTL-first (Arabic primary language) — layout direction comes
+   from <html dir="rtl">; components that need to be direction-
+   aware use logical properties (inset-inline-*, margin-inline,
+   border-inline-*) instead of left/right so a future LTR/English
+   mode (Section 38) just works.
+   Reference family: Linear / Notion / Vercel / OpenAI — calm,
+   minimal, premium. No hero sections, no gradient cards, no
+   glowing orbs/particles, no glassmorphism, no heavy shadows.
+   ============================================================ */
+
+:root {
+  /* ---- color: grayscale (dark) ---- */
+  --color-bg: #0a0a0b;
+  --color-bg-subtle: #111113;
+  --color-surface: #131315;
+  --color-surface-hover: #1a1a1d;
+  --color-border: #232326;
+  --color-border-strong: #2f2f34;
+
+  --color-text: #f4f4f5;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #6b6b74;
+  --color-text-on-accent: #ffffff;
+
+  /* ---- color: single accent (indigo, tuned for dark), used sparingly ---- */
+  --color-accent: #6366f1;
+  --color-accent-hover: #818cf8;
+  --color-accent-subtle: rgba(99, 102, 241, 0.14);
+  --color-accent-border: rgba(99, 102, 241, 0.4);
+
+  /* ---- status colors: quiet, text-weight only, not pills ---- */
+  --color-status-discovery: var(--color-text-muted);
+  --color-status-review: #d8a94d;
+  --color-status-prd: var(--color-accent);
+  --color-status-completed: #4fb87a;
+
+  --color-danger: #f0837a;
+  --color-danger-bg: rgba(240, 131, 122, 0.1);
+  --color-danger-border: rgba(240, 131, 122, 0.32);
+
+  /* ---- spacing scale ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ---- radius ---- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  /* ---- type ---- */
+  --font-arabic: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, system-ui, sans-serif;
+
+  /* ---- shadow: subtle only, used for the mobile drawer alone ---- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+  color-scheme: dark;
+  font-family: var(--font-arabic);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-bg);
+  min-height: 100svh;
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---------------------------------------------------------- */
+/* Layout helpers */
+/* ---------------------------------------------------------- */
+.container {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-inline: var(--space-6);
+}
+
+.page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------------------------------------------------------- */
+/* Top nav (marketing/auth pages only — the chat workspace uses
+   the sidebar instead, see below) */
+/* ---------------------------------------------------------- */
+.topnav {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.topnav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: var(--space-4);
+}
+
+.brand {
+  font-size: 20px;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+
+.topnav-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* ---------------------------------------------------------- */
+/* Buttons */
+/* ---------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--color-text-secondary);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------- */
+/* Cards */
+/* ---------------------------------------------------------- */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+/* ---------------------------------------------------------- */
+/* Forms */
+/* ---------------------------------------------------------- */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  text-align: start;
+}
+
+.field label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.field-hint {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.form-error {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-danger-border);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-size: 14px;
+  text-align: start;
+}
+
+.form-note {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: start;
+}
+
+/* ---------------------------------------------------------- */
+/* Notices (e.g. "Supabase not configured", "messages table missing") */
+/* ---------------------------------------------------------- */
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  text-align: start;
+}
+
+.notice-title {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.notice code {
+  font-family: ui-monospace, Consolas, monospace;
+  direction: ltr;
+  unicode-bidi: embed;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 13px;
+}
+
+.notice-inline {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  gap: 0;
+}
+
+.notice-inline p {
+  font-size: 13px;
+}
+
+/* ---------------------------------------------------------- */
+/* Loading */
+/* ---------------------------------------------------------- */
+.page-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  min-height: 40vh;
+}
+
+/* ---------------------------------------------------------- */
+/* Utility */
+/* ---------------------------------------------------------- */
+.stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+}
+
+.text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.ltr-nums {
+  direction: ltr;
+  unicode-bidi: embed;
+  display: inline-block;
+}
+
+.placeholder-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+}
+
+/* ============================================================
+   Requirements Workspace shell — sidebar + chat
+   ============================================================ */
+
+.app-shell {
+  height: 100svh;
+  display: flex;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.mobile-menu-btn {
+  display: none;
+  position: fixed;
+  inset-block-start: var(--space-3);
+  inset-inline-start: var(--space-3);
+  z-index: 30;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  border: none;
+  padding: 0;
+  z-index: 40;
+  cursor: default;
+}
+
+/* ---------- Sidebar (Section 9-10) ----------
+   Static flex child on desktop. On mobile it becomes a fixed
+   drawer that slides in from its own docked edge — inset-inline-start
+   (not left/right) so this flips correctly for a future LTR mode. */
+.sidebar {
+  width: 264px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border-inline-end: 1px solid var(--color-border);
+  padding-block: var(--space-4);
+  overflow: hidden;
+}
+
+.sidebar-top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-inline: var(--space-4);
+  padding-block-end: var(--space-4);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  color: var(--color-text);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.sidebar-logo {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.sidebar-new-btn {
+  width: 100%;
+  padding-block: var(--space-2);
+  font-size: 14px;
+}
+
+.sidebar-section {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-block-start: var(--space-4);
+}
+
+.sidebar-section-title {
+  padding-inline: var(--space-4);
+  margin-block-end: var(--space-2);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.sidebar-hint {
+  padding-inline: var(--space-4);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.sidebar-project-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-inline: var(--space-2);
+}
+
+.sidebar-project-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--color-text-secondary);
+  min-width: 0;
+}
+
+.sidebar-project-row:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.sidebar-project-row.active {
+  background: var(--color-accent-subtle);
+  color: var(--color-text);
+}
+
+.sidebar-project-dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+}
+
+.sidebar-project-row.active .sidebar-project-dot {
+  background: var(--color-accent);
+}
+
+.sidebar-project-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+}
+
+.sidebar-project-name {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-project-meta {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-footer {
+  margin-block-start: auto;
+  border-block-start: 1px solid var(--color-border);
+  padding-block-start: var(--space-3);
+  padding-inline: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sidebar-settings {
+  text-align: start;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  padding: var(--space-1) 0;
+  cursor: not-allowed;
+}
+
+.sidebar-profile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.sidebar-profile-email {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-signout {
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-3);
+  font-size: 13px;
+}
+
+/* ---------- Main / chat column ---------- */
+.app-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat,
+.chat-with-header {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-header {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.chat-header-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.chat-header h1 {
+  font-size: 17px;
+}
+
+.chat-header-status {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Project tabs (chat ↔ requirements review) ---------- */
+.project-tabs {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.project-tab {
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.project-tab:hover {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+}
+
+.project-tab.active {
+  color: var(--color-text);
+  background: var(--color-accent-subtle);
+}
+
+.chat-with-header .notice-inline {
+  margin: var(--space-4) var(--space-6) 0;
+}
+
+/* Editorial max-width column — Section 16: chat should never stretch
+   edge-to-edge on wide screens. */
+.chat-column {
+  width: 100%;
+  max-width: 720px;
+  margin-inline: auto;
+  padding-inline: var(--space-6);
+}
+
+.chat-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-block: var(--space-6);
+}
+
+.chat-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--space-4);
+  padding: var(--space-8);
+}
+
+.chat-empty-eyebrow {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.chat-empty-title {
+  font-size: 22px;
+}
+
+/* ---------- Messages (Section 18) — editorial blocks, not bubbles ---------- */
+.message-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.message-assistant {
+  border-inline-start: 2px solid var(--color-border-strong);
+  padding-inline-start: var(--space-4);
+}
+
+.message-user {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+}
+
+.message-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+}
+
+.message-content {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--color-text);
+  white-space: pre-wrap;
+}
+
+.chat-inline-error {
+  margin-block-start: var(--space-4);
+}
+
+.chat-inline-error-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.btn-sm {
+  padding: var(--space-2) var(--space-4);
+  font-size: 13px;
+}
+
+.discovery-ready-banner {
+  margin-block-start: var(--space-4);
+  padding-block-start: var(--space-3);
+  border-block-start: 1px solid var(--color-border);
+}
+
+.badge-soon {
+  display: inline-block;
+  margin-inline-start: var(--space-2);
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+/* ---------- Thinking indicator (Section 19) — minimal, no AI avatar ---------- */
+.thinking-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block-start: var(--space-4);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.thinking-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.thinking-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  animation: thinking-pulse 1.2s ease-in-out infinite;
+}
+
+.thinking-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.thinking-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes thinking-pulse {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+/* ---------- Chat input (Section 17) ---------- */
+.chat-input-area {
+  flex-shrink: 0;
+  border-block-start: 1px solid var(--color-border);
+  padding-block: var(--space-4);
+  background: var(--color-bg);
+}
+
+.quick-replies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-end: var(--space-3);
+}
+
+.quick-reply-chip {
+  padding: var(--space-2) var(--space-4);
+  border-radius: 999px;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.quick-reply-chip:hover:not(:disabled) {
+  border-color: var(--color-accent-border);
+  color: var(--color-accent-hover);
+}
+
+.quick-reply-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chat-input {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2) var(--space-3);
+  transition: border-color 0.15s ease;
+}
+
+.chat-input:focus-within {
+  border-color: var(--color-accent-border);
+}
+
+.chat-input-disabled {
+  opacity: 0.7;
+}
+
+.chat-input-textarea {
+  flex: 1;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-text);
+  line-height: 1.5;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: var(--space-2) var(--space-1);
+}
+
+.chat-input-textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+.chat-input-send {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.chat-input-send:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.chat-input-send:disabled {
+  background: var(--color-border-strong);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   Requirements Review (Sections 25-26) — reads like a document:
+   plain hierarchy, quiet badges, no cards-with-shadows.
+   ============================================================ */
+.requirements-page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.requirements-column {
+  width: 100%;
+  max-width: 760px;
+  margin-inline: auto;
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.req-confidence {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.req-confidence-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.req-confidence-label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.req-confidence-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.progress-bar-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.req-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.req-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  padding-block-end: var(--space-2);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.req-section-empty {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.req-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.req-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-3) 0;
+  border-block-end: 1px solid var(--color-border);
+}
+
+.req-item:last-child {
+  border-block-end: none;
+}
+
+.req-item-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.req-key {
+  font-family: ui-monospace, Consolas, monospace;
+  direction: ltr;
+  unicode-bidi: embed;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.req-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text);
+  flex: 1;
+  min-width: 0;
+}
+
+.req-description {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--color-text-secondary);
+}
+
+.req-item-actions {
+  display: flex;
+  gap: var(--space-1);
+  margin-inline-start: auto;
+}
+
+.req-item-actions .btn {
+  padding: 2px var(--space-2);
+  font-size: 12px;
+}
+
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--space-2);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  background: var(--color-bg-subtle);
+}
+
+.priority-badge-must {
+  color: #d8a94d;
+  border-color: rgba(216, 169, 77, 0.35);
+  background: rgba(216, 169, 77, 0.1);
+}
+
+.priority-badge-should {
+  color: var(--color-accent-hover);
+  border-color: var(--color-accent-border);
+  background: var(--color-accent-subtle);
+}
+
+.req-edit-form,
+.req-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-block: var(--space-3);
+}
+
+.req-add-toggle {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: var(--space-1) 0;
+}
+
+.req-add-toggle:hover {
+  color: var(--color-accent-hover);
+}
+
+.req-form-row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.req-form-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.requirements-fallback-notice {
+  font-size: 13px;
+}
+
+.requirements-generate {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding-block-start: var(--space-4);
+  border-block-start: 1px solid var(--color-border);
+}
+
+/* ---------- Responsive: sidebar collapses to a drawer (Section 37) ---------- */
+@media (max-width: 859px) {
+  .mobile-menu-btn {
+    display: flex;
+  }
+
+  .sidebar {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: -100%;
+    width: min(84vw, 300px);
+    z-index: 50;
+    box-shadow: var(--shadow-md);
+    transition: inset-inline-start 0.22s ease;
+  }
+
+  .sidebar.sidebar-open {
+    inset-inline-start: 0;
+  }
+
+  .chat-header,
+  .chat-column {
+    padding-inline: var(--space-4);
+  }
+}
+
+@media (min-width: 860px) {
+  .sidebar-backdrop {
+    display: none;
+  }
+}
