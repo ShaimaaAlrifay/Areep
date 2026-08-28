@@ -5,6 +5,7 @@ import { ForgotPassword } from '../features/auth/ForgotPassword'
 import { Login } from '../features/auth/Login'
 import { Register } from '../features/auth/Register'
 import { ChatPage } from '../features/projects/ChatPage'
+import { PrdPreview } from '../features/projects/PrdPreview'
 import { RequirementsReview } from '../features/projects/RequirementsReview'
 import { Landing } from '../pages/Landing'
 import { AppShell } from './AppShell'
@@ -28,6 +29,7 @@ function App() {
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/chat/:projectId" element={<ChatPage />} />
           <Route path="/chat/:projectId/requirements" element={<RequirementsReview />} />
+          <Route path="/chat/:projectId/prd" element={<PrdPreview />} />
         </Route>
       </Routes>
     </AuthProvider>

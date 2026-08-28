@@ -8,8 +8,10 @@ import {
   REQUIREMENT_TYPE_ORDER,
   STATUS_LABELS,
 } from '../../lib/constants'
+import { groupRequirementsByType, requirementsFromDiscoveryState } from '../../lib/requirementGroups'
 import { addRequirement, deleteRequirement, isMissingTableError, listRequirements, updateRequirement } from '../../services/requirementsService'
 import { ProjectTabs } from './ChatPage'
+import { usePrdGeneration } from './usePrdGeneration'
 
 const PRIORITY_BADGE_CLASS = {
   'Must Have': 'priority-badge-must',
@@ -55,21 +57,7 @@ export function RequirementsReview() {
     loadRequirements()
   }, [loadRequirements])
 
-  const fallbackItems = useMemo(() => {
-    const extracted = project?.discovery_state?.requirements_extracted
-    if (!Array.isArray(extracted)) return []
-    return extracted
-      .filter((item) => item && typeof item.id === 'string' && typeof item.type === 'string')
-      .map((item) => ({
-        id: null,
-        req_key: item.id,
-        type: item.type,
-        title: item.title,
-        description: item.description,
-        priority: item.priority || 'Unspecified',
-        source: 'ai',
-      }))
-  }, [project])
+  const fallbackItems = useMemo(() => requirementsFromDiscoveryState(project), [project])
 
   // Only fall back once we actually know the real table is empty (not
   // just "still loading") — otherwise every page load would flash the
@@ -78,14 +66,7 @@ export function RequirementsReview() {
   const items = usingFallback ? fallbackItems : requirements
   const editable = !usingFallback
 
-  const bySection = useMemo(() => {
-    const map = {}
-    for (const type of REQUIREMENT_TYPE_ORDER) map[type] = []
-    for (const item of items) {
-      if (map[item.type]) map[item.type].push(item)
-    }
-    return map
-  }, [items])
+  const bySection = useMemo(() => groupRequirementsByType(items), [items])
 
   const handleSave = useCallback((id, values) => {
     return updateRequirement(id, values).then(({ data, error }) => {
@@ -123,6 +104,13 @@ export function RequirementsReview() {
     [projectId],
   )
 
+  // Same flow the chat's "جهّز وثيقة PRD" action runs — generate, persist,
+  // export through Areeb's own PDF template, then land on the preview.
+  // Shared so the two entry points can't diverge (see usePrdGeneration.js);
+  // this one passes the requirements it has already loaded, so the hook
+  // doesn't re-read them.
+  const prdState = usePrdGeneration(projectId, project, bySection)
+
   if (projectLoading) {
     return <div className="page-loading">جارٍ تحميل المشروع…</div>
   }
@@ -149,7 +137,7 @@ export function RequirementsReview() {
           <h1>{project.name}</h1>
           <span className="chat-header-status">{STATUS_LABELS[project.status] || project.status}</span>
         </div>
-        <ProjectTabs projectId={projectId} />
+        <ProjectTabs projectId={projectId} showPrd={project.status === 'prd_generated'} />
       </header>
 
       <div className="requirements-page">
@@ -208,10 +196,18 @@ export function RequirementsReview() {
           </section>
 
           <div className="requirements-generate">
-            <button type="button" className="btn btn-primary" disabled>
-              توليد PRD <span className="badge-soon">قريبًا</span>
+            <button type="button" className="btn btn-primary" onClick={prdState.generate} disabled={prdState.generating || items.length === 0}>
+              {prdState.generating ? 'أريب يبني وثيقتك…' : 'توليد PRD'}
             </button>
-            <p className="form-note">هذه الخطوة (توليد PRD عبر Groq) قادمة في مرحلة لاحقة.</p>
+            {items.length === 0 && !prdState.generating && <p className="form-note">أضف متطلبات أولًا قبل توليد وثيقة PRD.</p>}
+            {prdState.error && (
+              <div className="chat-inline-error-wrap">
+                <p className="form-error chat-inline-error">{prdState.error}</p>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={prdState.generate}>
+                  حاول مرة ثانية
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

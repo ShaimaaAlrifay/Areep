@@ -787,6 +787,19 @@ button:focus-visible {
   border-block-start: 1px solid var(--color-border);
 }
 
+.discovery-ready-text {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.discovery-ready-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
 .badge-soon {
   display: inline-block;
   margin-inline-start: var(--space-2);
@@ -1171,5 +1184,126 @@ button:focus-visible {
 @media (min-width: 860px) {
   .sidebar-backdrop {
     display: none;
+  }
+}
+
+/* ============================================================
+   PRD Preview (Section 31) — simplified 3-pane document editor:
+   left = table of contents, center = the live embedded PDF, right =
+   actions/metadata. Same quiet editorial look as the rest of the app,
+   not a separate visual system.
+   ============================================================ */
+.prd-preview {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) 240px;
+  gap: 1px;
+  background: var(--color-border);
+}
+
+.prd-pane {
+  background: var(--color-bg);
+  padding: var(--space-4);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.prd-pane-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.prd-toc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.prd-toc-item {
+  width: 100%;
+  text-align: right;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-2);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.prd-toc-item:hover:not(:disabled) {
+  color: var(--color-text);
+  background: var(--color-surface-hover);
+}
+
+.prd-toc-item.active {
+  color: var(--color-text);
+  background: var(--color-accent-subtle);
+}
+
+.prd-toc-item:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.prd-document {
+  background: var(--color-bg-subtle);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.prd-frame {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: none;
+}
+
+.prd-actions {
+  gap: var(--space-2);
+}
+
+.prd-meta-block {
+  margin-block-start: var(--space-4);
+  padding-block-start: var(--space-3);
+  border-block-start: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.prd-meta-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.prd-meta-row span:last-child {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+@media (max-width: 859px) {
+  .prd-preview {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  .prd-toc {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .prd-toc-list {
+    flex-direction: row;
   }
 }

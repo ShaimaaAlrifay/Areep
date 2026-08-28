@@ -8,6 +8,7 @@ import { STATUS_LABELS } from '../../lib/constants'
 import { getProject, updateProjectDiscovery } from '../../services/projectsService'
 import { mergeDiscoveryRequirements } from '../../services/requirementsService'
 import { useNewProjectFlow } from './useNewProjectFlow'
+import { usePrdGeneration } from './usePrdGeneration'
 
 const DISCOVERY_ERROR_FALLBACK = 'ما قدرت أحلل الإجابة حالياً. حاول مرة ثانية.'
 
@@ -155,17 +156,42 @@ function ExistingProjectChat({ projectId, organizationId }) {
       }
 
       addMessage('assistant', data.response)
-      setDiscovery({ loading: false, error: null, pendingHistory: null, ready: data.discovery_status === 'ready' })
+
+      // `status` moves with the agent's own verdict, not on its own timer:
+      // 'ready' means Areeb says it understands the idea, which is exactly
+      // what 'ready_for_review' represents in the schema's enum. Without
+      // this the status pill (and the sidebar's per-project meta line) sat
+      // on 'الاكتشاف' forever, no matter how complete the project was.
+      const ready = data.discovery_status === 'ready'
+      setDiscovery({ loading: false, error: null, pendingHistory: null, ready })
+
+      const discoveryState = {
+        requirements_extracted: data.requirements_extracted || [],
+        missing_information: data.missing_information || [],
+        contradictions: data.contradictions || [],
+        discovery_status: data.discovery_status,
+        intent: data.intent,
+      }
+
+      // Mirror the write locally too — the project row was fetched once on
+      // mount and is never refetched, so without this the header's status
+      // pill and the "راجع المتطلبات / PRD" affordances keep showing the
+      // state the project was in when the page loaded.
+      setProject((current) =>
+        current
+          ? {
+              ...current,
+              confidence: typeof data.confidence === 'number' ? data.confidence : current.confidence,
+              discovery_state: discoveryState,
+              status: ready && current.status === 'discovery' ? 'ready_for_review' : current.status,
+            }
+          : current,
+      )
 
       updateProjectDiscovery(projectId, {
         confidence: typeof data.confidence === 'number' ? data.confidence : 0,
-        discovery_state: {
-          requirements_extracted: data.requirements_extracted || [],
-          missing_information: data.missing_information || [],
-          contradictions: data.contradictions || [],
-          discovery_status: data.discovery_status,
-          intent: data.intent,
-        },
+        status: ready ? 'ready_for_review' : undefined,
+        discovery_state: discoveryState,
       }).then(({ error: persistError }) => {
         // Best-effort — an unmigrated `projects.confidence`/`discovery_state`
         // (schema migration not yet run) degrades to "not saved this turn"
@@ -215,6 +241,20 @@ function ExistingProjectChat({ projectId, organizationId }) {
     if (discovery.pendingHistory) runDiscovery(discovery.pendingHistory)
   }, [discovery.pendingHistory, runDiscovery])
 
+  // Requirements aren't loaded on this screen, so the hook reads them
+  // itself (table first, discovery_state snapshot second) — see
+  // usePrdGeneration.js.
+  const prd = usePrdGeneration(projectId, project, null)
+
+  /**
+   * `discovery.ready` only covers the turn that just came back over the
+   * wire. `discovery_state.discovery_status` is the same verdict as
+   * persisted last turn, so reading both means the action survives a
+   * reload — and doesn't vanish the moment the user types one more
+   * message after Areeb already said it understood the idea.
+   */
+  const readyForPrd = discovery.ready || project?.discovery_state?.discovery_status === 'ready' || project?.status === 'ready_for_review'
+
   if (loading) {
     return <div className="page-loading">جارٍ تحميل المشروع…</div>
   }
@@ -238,7 +278,7 @@ function ExistingProjectChat({ projectId, organizationId }) {
           <h1>{project.name}</h1>
           <span className="chat-header-status">{STATUS_LABELS[project.status] || project.status}</span>
         </div>
-        <ProjectTabs projectId={projectId} />
+        <ProjectTabs projectId={projectId} showPrd={project.status === 'prd_generated'} />
       </header>
 
       {isMissingTable && (
@@ -257,10 +297,12 @@ function ExistingProjectChat({ projectId, organizationId }) {
         disabled={discovery.loading}
         thinking={discovery.loading}
         thinkingLabel="أريب يحلل إجابتك..."
-        error={discovery.error}
+        error={discovery.error || prd.error}
         onRetry={discovery.error ? handleRetry : undefined}
-        readyForReview={discovery.ready}
+        readyForReview={readyForPrd && !discovery.loading}
         reviewHref={`/chat/${projectId}/requirements`}
+        onGeneratePrd={prd.generate}
+        generatingPrd={prd.generating}
       />
     </div>
   )
@@ -273,7 +315,7 @@ function ExistingProjectChat({ projectId, organizationId }) {
  * workspace, not two apps. Exported for RequirementsReview.jsx to reuse
  * the exact same header row.
  */
-export function ProjectTabs({ projectId }) {
+export function ProjectTabs({ projectId, showPrd = false }) {
   return (
     <nav className="project-tabs" aria-label="أقسام المشروع">
       <NavLink to={`/chat/${projectId}`} end className={({ isActive }) => `project-tab${isActive ? ' active' : ''}`}>
@@ -282,6 +324,15 @@ export function ProjectTabs({ projectId }) {
       <NavLink to={`/chat/${projectId}/requirements`} className={({ isActive }) => `project-tab${isActive ? ' active' : ''}`}>
         المتطلبات
       </NavLink>
+      {/* Only shown once a PRD has actually been generated for this
+          project (projects.status flips to 'prd_generated' — an enum
+          value that was already in the check constraint since the
+          Phase 1 schema, see supabase/schema.sql) — never a dead tab. */}
+      {showPrd && (
+        <NavLink to={`/chat/${projectId}/prd`} className={({ isActive }) => `project-tab${isActive ? ' active' : ''}`}>
+          PRD
+        </NavLink>
+      )}
     </nav>
   )
 }

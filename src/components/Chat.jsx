@@ -21,6 +21,8 @@ export function Chat({
   onRetry,
   readyForReview = false,
   reviewHref = null,
+  onGeneratePrd = null,
+  generatingPrd = false,
 }) {
   return (
     <div className="chat">
@@ -38,11 +40,26 @@ export function Chat({
               )}
             </div>
           )}
-          {readyForReview && reviewHref && (
+          {readyForReview && (reviewHref || onGeneratePrd) && (
             <div className="discovery-ready-banner" role="status">
-              <Link to={reviewHref} className="btn btn-secondary btn-sm">
-                راجع المتطلبات
-              </Link>
+              {/* Once the discovery agent reports `ready` (Sections 24, 27),
+                  building the document is the primary action — reviewing the
+                  extracted requirements first stays available beside it, but
+                  the user shouldn't have to go hunting for a second button on
+                  another page to get the thing they came for. */}
+              <p className="discovery-ready-text">أريب فهم فكرتك — جاهزين نجهّز وثيقة المتطلبات.</p>
+              <div className="discovery-ready-actions">
+                {onGeneratePrd && (
+                  <button type="button" className="btn btn-primary btn-sm" onClick={onGeneratePrd} disabled={generatingPrd}>
+                    {generatingPrd ? 'أريب يبني وثيقتك…' : 'جهّز وثيقة PRD'}
+                  </button>
+                )}
+                {reviewHref && (
+                  <Link to={reviewHref} className="btn btn-secondary btn-sm">
+                    راجع المتطلبات
+                  </Link>
+                )}
+              </div>
             </div>
           )}
         </div>

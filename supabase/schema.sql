@@ -296,3 +296,30 @@ create policy "members can update their org's project requirements"
 create policy "members can delete their org's project requirements"
   on requirements for delete
   using (project_id in (select id from projects where organization_id in (select organization_id from organization_members where user_id = (select auth.uid()))));
+
+-- ============================================================
+-- PRD generation phase — persisted PRD document snapshot
+--
+-- Run this section in Supabase: Dashboard → SQL Editor → New query →
+-- paste → Run. Adds one column to `projects` so a generated PRD survives
+-- a reload of /chat/:projectId/prd instead of requiring regeneration
+-- every time (see areep/server/routes/prd.js + src/services/prdService.js
+-- + src/features/projects/PrdPreview.jsx). `prd_data` stores the raw
+-- validated JSON response from POST /api/prd as-is (metadata/sections/
+-- requirements/user_stories/acceptance_criteria/risks/assumptions — see
+-- server/lib/validatePrdResponse.js) — it is never re-shaped before
+-- storage; the frontend maps it to the PDF renderer's own shape on read
+-- (src/lib/prdMapper.js).
+--
+-- `status` already had 'prd_generated' in its check constraint from
+-- Phase 1 (see the `projects` table definition above) — reused here as
+-- the signal the frontend's ProjectTabs (src/features/projects/ChatPage.jsx)
+-- uses to decide whether the "PRD" pill is shown at all, not a new enum
+-- value.
+--
+-- No new RLS policy needed, same reasoning as the "Discovery phase"
+-- migration above: the existing "members can update their org's
+-- projects" UPDATE policy is row-scoped, not column-scoped, and already
+-- covers UPDATE on every column of `projects`.
+-- ============================================================
+alter table projects add column if not exists prd_data jsonb;
