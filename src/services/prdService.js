@@ -1,8 +1,8 @@
 // Thin client for the areep/server Express backend's PRD-generation
-// endpoint — same shape as discoveryService.js's sendDiscoveryMessage:
-// this hits our own small Node proxy (which holds the Groq/Gemini API
-// keys), never Supabase directly.
-const API_BASE = import.meta.env.VITE_AREEP_API_URL || 'http://localhost:3002'
+// endpoint — same shape as discoveryService.js's sendDiscoveryMessage.
+// The base URL (and the check that it is deployable) lives in apiBase.js,
+// which both of these clients share.
+import { API_BASE } from './apiBase'
 
 const NETWORK_ERROR_MESSAGE = 'تعذّر الاتصال بخادم أريب. تأكد إنه شغّال (npm run server) وحاول مرة ثانية.'
 const GENERIC_ERROR_MESSAGE = 'واجهنا مشكلة أثناء بناء الوثيقة. حاول مرة ثانية.'

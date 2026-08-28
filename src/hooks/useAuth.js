@@ -57,11 +57,27 @@ export function useAuth() {
     return { error }
   }, [])
 
+  /* redirectTo must be /reset-password, not /login. Supabase signs the
+     user in when they open a recovery link; landing them on /login meant
+     the page's "already signed in" guard immediately forwarded them to
+     /chat, so the password was never actually changed and the user was
+     left with the old one. The dedicated route below collects the new
+     password instead. */
   const resetPassword = useCallback(async (email) => {
     if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_ERROR }
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/login`,
+      redirectTo: `${window.location.origin}/reset-password`,
     })
+    return { error }
+  }, [])
+
+  /* Completes the recovery flow. Works on the session Supabase created
+     from the emailed link, which is why /reset-password must stay a
+     public route — the user is technically authenticated by the time
+     they arrive, but only for this one purpose. */
+  const updatePassword = useCallback(async (password) => {
+    if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_ERROR }
+    const { error } = await supabase.auth.updateUser({ password })
     return { error }
   }, [])
 
@@ -73,5 +89,6 @@ export function useAuth() {
     signUp,
     signOut,
     resetPassword,
+    updatePassword,
   }
 }

@@ -30,9 +30,15 @@
    ============================================================ */
 import { View, Text, Svg, Path, Image } from "@react-pdf/renderer";
 import { C, prdStyles } from "./prdStyles";
-import { assetUrl } from "../../lib/assetUrl";
+import { LOGO_MARK_BLACK, LOGO_LOCKUP_BLACK, LOGO_LOCKUP_RATIO } from "../../lib/brand";
 
-const AREEB_LOGO_URL = assetUrl("assets/areeb/logo.png");
+/* The BLACK cut, because this document is printed on white A4 — the one
+   light surface in the product. This template used to draw a file called
+   `logo.png` (since deleted) that was byte-identical to the white mark,
+   so the header logo was white-on-white and effectively invisible in
+   every generated PDF. See src/lib/brand.js. */
+const AREEB_LOGO_URL = LOGO_MARK_BLACK;
+export { LOGO_LOCKUP_BLACK, LOGO_LOCKUP_RATIO };
 
 /* ---------- technical identifier (spec §5) ----------
    FR-001, NFR-002, v1.0, PRD-2026-833, 2026-08-28, "August 28, 2026".
@@ -98,8 +104,29 @@ export function scatterStars(seed, count, spreadX, spreadY) {
 /* ---------- page chrome (every page but the cover) ----------
    RTL order, per spec §9: brand mark on the right, document name to
    its left in the header; confidentiality note right and the page
-   counter left in the footer. The wordmark and the counter stay LTR —
-   brand and technical identifiers, not prose. */
+   counter left in the footer. Order comes from `row-reverse` (see
+   prdStyles.js rule 1) — the first child below is the rightmost one.
+   The wordmark and the counter stay LTR: brand and technical
+   identifiers, not prose.
+
+   Two @react-pdf/renderer quirks are worked around here, both found by
+   rendering and inspecting real output rather than from the source:
+
+   1. `bottom` DOES NOT POSITION an absolutely-positioned Page child.
+      The footer was written as `position: absolute; bottom: 34` and
+      rendered nowhere at all — no note, no page numbers, on any page.
+      Switching to a `top` offset placed it correctly and immediately.
+      So the footer's offset is expressed from the top of the page
+      (prdStyles.pageFooter), measured to sit below the content box
+      (which ends at 841.89 - 64 = 777.89pt).
+
+   2. A `fixed` container holding a `render`-callback child renders only
+      ONE of its children. With the note static and the counter dynamic,
+      only the counter appeared; making both dynamic flipped it so only
+      the note appeared. The header is unaffected — all of its children
+      are static and both render. Rather than depend on that ordering,
+      the footer is split into two independently `fixed` layers, each
+      with a single child, positioned by which edge they align to. */
 export function PageChrome() {
   return (
     <>
@@ -111,14 +138,15 @@ export function PageChrome() {
         <Text style={prdStyles.pageHeaderDoc}>مستند متطلبات المنتج</Text>
       </View>
       <View style={prdStyles.pageHeaderRule} fixed />
-      <View style={prdStyles.pageFooter} fixed>
+      <View style={prdStyles.pageFooterNoteLayer} fixed>
         <Text style={prdStyles.pageFooterNote}>ملكية أريب • سرّي</Text>
+      </View>
+      <View style={prdStyles.pageFooterCounterLayer} fixed>
         <Text
           style={prdStyles.pageFooterCounter}
           render={({ pageNumber, totalPages }) =>
             `${String(pageNumber).padStart(2, "0")} / ${String(totalPages).padStart(2, "0")}`
           }
-          fixed
         />
       </View>
     </>
@@ -179,8 +207,8 @@ export function SectionHeading({ number, title, lede, stars }) {
    The header row is `fixed`, so it repeats at the top of every
    continuation page when a table overflows (spec §8).
 
-   Column order is written in READING order — first entry rendered
-   first, which under `direction: rtl` puts it on the right. Each
+   Column order is written in READING order — the first entry is the
+   rightmost column, because the row is `row-reverse`. Each
    column declares its own `align` and renderer; a cell never inherits
    an alignment that disagrees with its header, which is what made the
    old tables look ragged column by column. */
@@ -196,7 +224,7 @@ export function EditorialTable({ columns, rows, zebra = false }) {
     <View>
       <View style={prdStyles.tableHeaderRow} fixed>
         {columns.map((col) => (
-          <View key={col.key} style={{ width: col.width, paddingEnd: 10 }}>
+          <View key={col.key} style={{ width: col.width, paddingLeft: 10 }}>
             <Text style={prdStyles.tableHeaderCell}>{col.label}</Text>
           </View>
         ))}
@@ -212,7 +240,7 @@ export function EditorialTable({ columns, rows, zebra = false }) {
           wrap={false}
         >
           {columns.map((col) => (
-            <View key={col.key} style={{ width: col.width, paddingEnd: 10 }}>
+            <View key={col.key} style={{ width: col.width, paddingLeft: 10 }}>
               <CellContent col={col} row={row} />
             </View>
           ))}

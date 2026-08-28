@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { PROJECT_TYPE_LABELS, PROJECT_TYPE_ORDER } from '../../lib/constants'
 import { createProject } from './createProject'
+import { EVENTS, track } from '../../lib/analytics'
 
 // The scripted (non-AI) new-project onboarding script — Section 11. One
 // question at a time, waiting for the user's reply before advancing.
@@ -59,6 +60,12 @@ export function useNewProjectFlow(organizationId) {
         // as the real first discovery turn to Gemini (see ChatPage.jsx's
         // autoStartDiscovery effect) and shows Gemini's actual first
         // follow-up question instead of a canned placeholder.
+        /* The project type is a fixed enum, so it is safe to report and
+           genuinely useful — it says which kinds of work the product is
+           actually used for. The project name, client name and description
+           are the user's and their client's, and never leave. */
+        track(EVENTS.PROJECT_CREATED, { project_type: finalAnswers.projectType })
+
         setCreatedProject(project)
       } catch (submitError) {
         setError(submitError?.message || 'تعذّر إنشاء المشروع. حاول مرة أخرى.')

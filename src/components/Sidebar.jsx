@@ -1,5 +1,5 @@
 import { Link, NavLink } from 'react-router-dom'
-import { assetUrl } from '../lib/assetUrl'
+import { LOGO_LOCKUP_WHITE } from '../lib/brand'
 import { formatRelativeDate, STATUS_LABELS } from '../lib/constants'
 
 /**
@@ -16,9 +16,12 @@ export function Sidebar({ projects, loading, user, onSignOut, isOpen, onClose })
       {isOpen && <button type="button" className="sidebar-backdrop" onClick={onClose} aria-label="إغلاق القائمة" />}
       <aside className={`sidebar${isOpen ? ' sidebar-open' : ''}`}>
         <div className="sidebar-top">
+          {/* The white cut: the sidebar sits on --color-bg (#0a0a0b). One
+              lockup image replaces the old mark + typeset "أريب" pair, so
+              the brand's own spacing between mark and wordmark is used
+              rather than re-approximated in CSS. */}
           <Link to="/chat" className="sidebar-brand" onClick={onClose}>
-            <img src={assetUrl('assets/areeb/logo.png')} alt="" className="sidebar-logo" />
-            <span>أريب</span>
+            <img src={LOGO_LOCKUP_WHITE} alt="أريب" className="sidebar-lockup" />
           </Link>
 
           <Link to="/chat/new" className="btn btn-primary sidebar-new-btn" onClick={onClose}>

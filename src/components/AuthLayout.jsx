@@ -1,14 +1,16 @@
 import { Link } from 'react-router-dom'
+import { LOGO_LOCKUP_WHITE } from '../lib/brand'
 
 export function AuthLayout({ title, subtitle, children }) {
   return (
     <div className="page">
       <div className="container" style={{ paddingBlock: 'var(--space-8)' }}>
         <Link to="/" className="brand" style={{ display: 'inline-block', marginBottom: 'var(--space-8)' }}>
-          أريب
+          <img src={LOGO_LOCKUP_WHITE} alt="أريب" className="brand-lockup" />
         </Link>
       </div>
       <main
+        id="main"
         style={{
           flex: 1,
           display: 'flex',

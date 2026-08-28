@@ -13,23 +13,27 @@
 
    ---------- the Arabic layout system ----------
    This document is designed in Arabic, not translated into it. Every
-   page is `direction: "rtl"`; rows are real RTL flex rows (first
-   child = rightmost) rather than LTR rows reversed with
-   `row-reverse`; padding is flow-relative (paddingEnd, not
-   paddingLeft); and all prose runs through one font that carries both
-   scripts, so a sentence mixing Arabic with "WhatsApp" or "FR-001"
-   stays a single bidi paragraph. See prdComponents.jsx's header for
-   what that replaced and why.
+   page carries `direction: "rtl"` for bidi and default alignment,
+   every horizontal band is a `row-reverse` flex row so its first child
+   renders rightmost, right-anchoring uses `alignSelf: "flex-end"`, and
+   all prose runs through one font that carries both scripts — so a
+   sentence mixing Arabic with "WhatsApp" or "FR-001" stays a single
+   bidi paragraph. prdStyles.js rule 1 documents why direction and
+   layout are two separate mechanisms in this renderer;
+   prdComponents.jsx's header documents what the font change replaced.
 
    Technical identifiers (FR-001 / v1.0 / PRD-2026-833 / dates / page
    numbers) are rendered through <Ltr>, which isolates them as atomic
    left-to-right islands so RTL can never invert them.
 
-   Eight pages: a cover, then seven numbered sections. Sections 04
-   (Functional Requirements) and 07 (Assumptions / Open Questions /
-   Governance) are the two expected to overflow onto a continuation
-   page — that is what exercises the `fixed` table header row and
-   PageChrome's repeat behaviour.
+   Eight sections: a cover, then seven numbered ones. Sections are not
+   the same thing as pages — an overflowing section continues onto extra
+   sheets, so the sample data renders ten. On that data 05 (User Stories)
+   and 07 (Assumptions / Open Questions / Governance) are the two that
+   overflow, which is what exercises the `fixed` table header row and
+   PageChrome's repeat behaviour. Which sections spill depends on the
+   content, so nothing may assume a fixed page count — see
+   measureSectionPages() for how the preview's TOC gets real numbers.
    ============================================================ */
 import { Document, Page, View, Text, Image, StyleSheet, pdf } from "@react-pdf/renderer";
 import { registerPRDFonts, FONT } from "./prdFonts";
@@ -44,7 +48,8 @@ import {
   PriorityPill,
   StarField,
   scatterStars,
-  AREEB_LOGO_URL,
+  LOGO_LOCKUP_BLACK,
+  LOGO_LOCKUP_RATIO,
   Ltr,
   translateStatus,
 } from "./prdComponents";
@@ -59,20 +64,16 @@ const local = StyleSheet.create({
      project name grows the block instead of colliding with the row
      below it. */
   coverTop: {
-    direction: "rtl",
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  coverMark: { flexDirection: "row", alignItems: "center", gap: 8 },
-  coverLogo: { width: 20, height: 20 },
-  coverWordmark: {
-    fontFamily: FONT.mark,
-    fontWeight: 700,
-    fontSize: 8,
-    letterSpacing: 3,
-    color: C.gray500,
-  },
+  /* The cover carries the full horizontal lockup (mark + أريب / AREEB)
+     in its black cut — this is white paper. Height is set and width
+     derived from the artwork's own ratio so the lockup is never
+     squashed; the running header uses the mark alone, since at 11pt the
+     lockup's wordmark would be too small to read. */
+  coverLockup: { height: 26, width: 26 * LOGO_LOCKUP_RATIO },
   coverKicker: {
     fontFamily: FONT.arabic,
     fontWeight: 400,
@@ -80,7 +81,7 @@ const local = StyleSheet.create({
     color: C.gray500,
   },
 
-  coverTitleWrap: { marginTop: 150 },
+  coverTitleWrap: { marginTop: 196 },
   coverDocType: {
     fontFamily: FONT.arabic,
     fontWeight: 600,
@@ -106,21 +107,20 @@ const local = StyleSheet.create({
     textAlign: "right",
     marginTop: 20,
     maxWidth: 400,
-    alignSelf: "flex-start",
+    alignSelf: "flex-end",
   },
   coverRule: {
     height: 1,
     width: 44,
     backgroundColor: C.black,
     marginTop: 30,
-    alignSelf: "flex-start",
+    alignSelf: "flex-end",
   },
 
   /* Metadata as a real RTL row: first item rightmost, each column an
      equal quarter so the four labels sit on one baseline grid. */
   coverMetaRow: {
-    direction: "rtl",
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     marginTop: "auto",
     paddingTop: 24,
     borderTopWidth: 0.75,
@@ -153,7 +153,7 @@ const local = StyleSheet.create({
 
   /* ---------- section body ---------- */
   sectionBody: { flex: 1 },
-  block: { marginBottom: 26 },
+  block: { marginBottom: 16 },
   tableNote: {
     fontFamily: FONT.arabic,
     fontSize: 8,
@@ -168,9 +168,7 @@ const local = StyleSheet.create({
      acceptance criteria, and `wrap={false}` on the whole card means a
      story can never be split across two pages (spec §8). */
   storyCard: {
-    marginBottom: 22,
-    paddingEnd: 0,
-    paddingStart: 0,
+    marginBottom: 12,
     paddingTop: 2,
     paddingBottom: 2,
     borderRightWidth: 2,
@@ -179,11 +177,10 @@ const local = StyleSheet.create({
     paddingRight: 16,
   },
   storyHead: {
-    direction: "rtl",
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
     gap: 8,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   storyNum: {
     direction: "ltr",
@@ -197,20 +194,29 @@ const local = StyleSheet.create({
     fontSize: 8.5,
     color: C.gray500,
   },
+  /* The measure cap has to sit on this View, not on the quote's own Text.
+     @react-pdf/layout gives a Text node its own measure function, and a
+     maxWidth declared directly on that Text is not honoured — measured
+     both ways against real output: on the Text the quote kept running the
+     full 465pt card width, on this wrapper it breaks at 430pt as asked.
+
+     430pt at 11pt Arabic is roughly 70 characters a line. The full card
+     width ran past 78, which is beyond a comfortable measure and made the
+     story quotes read as body copy rather than as pull quotes. */
+  storyQuoteWrap: { maxWidth: 430, alignSelf: "flex-end" },
   storyCriteriaLabel: {
     fontFamily: FONT.arabic,
     fontWeight: 600,
     fontSize: 8,
     color: C.gray500,
-    marginTop: 12,
-    marginBottom: 8,
+    marginTop: 8,
+    marginBottom: 6,
     textAlign: "right",
   },
 
   /* ---------- scope column heads ---------- */
   scopeHead: {
-    direction: "rtl",
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     alignItems: "center",
     gap: 8,
     marginBottom: 14,
@@ -231,7 +237,7 @@ const local = StyleSheet.create({
    Written in READING order: the first entry renders rightmost under
    `direction: rtl`. Widths must sum to the row's usable width —
    CONTENT_W (483.28) minus the row's own paddingHorizontal (12 + 12)
-   = 459.28, and each column carries paddingEnd: 10 inside that. A few
+   = 459.28, and each column carries paddingLeft: 10 inside that. A few
    points of slack is deliberate; yoga does not shrink fixed-width
    flex children, so an over-budget row would push its last column
    past the margin. */
@@ -263,19 +269,257 @@ const govColumns = [
 ];
 
 /* ============================================================
-   The document
+   The document — one component per section
+   ------------------------------------------------------------
+   Each section owns exactly one <Page> element, and derives whatever
+   rows it needs from `data` itself, so it can be rendered on its own.
+   That is load-bearing for the preview's table of contents, not tidiness:
+   in @react-pdf/renderer a <Page> never flows content into its sibling.
+   A section that overflows adds continuation pages after itself and the
+   next <Page> still starts on a fresh sheet, so a section's page count is
+   identical whether it renders alone or inside the whole document.
+   measureSectionPages() below turns that property into real page numbers.
    ============================================================ */
-export function PRDDocument({ data = prdSampleData }) {
-  registerPRDFonts();
 
+/* ---------- COVER ---------- */
+function CoverPage({ data }) {
+  return (
+    <Page size="A4" style={prdStyles.coverPage}>
+      <View style={local.coverTop}>
+        <Image src={LOGO_LOCKUP_BLACK} style={local.coverLockup} />
+        {/* Not a second "مستند متطلبات المنتج" — the doc type already
+            headlines the title block below. This slot carries the
+            classification instead, so the row adds information rather
+            than repeating it. */}
+        <Text style={local.coverKicker}>سرّي — ملكية أريب</Text>
+      </View>
+
+      <StarField
+        stars={scatterStars(11, 24, 300, 124)}
+        width={300}
+        height={124}
+        style={{ position: "absolute", top: 132, right: 56 }}
+      />
+
+      <View style={local.coverTitleWrap}>
+        <Text style={local.coverDocType}>مستند متطلبات المنتج</Text>
+        <Text style={local.coverTitle}>{data.meta.projectName}</Text>
+        <Text style={local.coverLede}>{data.meta.shortDescription}</Text>
+        <View style={local.coverRule} />
+      </View>
+
+      <View style={local.coverMetaRow}>
+        <View style={local.coverMetaItem}>
+          <Text style={local.coverMetaLabel}>رقم المستند</Text>
+          <Ltr style={local.coverMetaValueLtr}>{data.meta.prdId}</Ltr>
+        </View>
+        <View style={local.coverMetaItem}>
+          <Text style={local.coverMetaLabel}>الإصدار</Text>
+          <Ltr style={local.coverMetaValueLtr}>{data.meta.version}</Ltr>
+        </View>
+        <View style={local.coverMetaItem}>
+          <Text style={local.coverMetaLabel}>الحالة</Text>
+          <Text style={local.coverMetaValue}>{translateStatus(data.meta.status)}</Text>
+        </View>
+        <View style={local.coverMetaItem}>
+          <Text style={local.coverMetaLabel}>التاريخ</Text>
+          <Ltr style={local.coverMetaValueLtr}>{data.meta.date}</Ltr>
+        </View>
+      </View>
+    </Page>
+  );
+}
+
+/* ---------- 01 · الملخص التنفيذي ---------- */
+function ExecutiveSummaryPage({ data }) {
+  return (
+    <Page size="A4" style={prdStyles.page}>
+      <PageChrome />
+      <SectionHeading
+        number="01"
+        title="الملخص التنفيذي"
+        lede={data.executiveSummary.description}
+        stars={scatterStars(2, 8, 150, 46)}
+      />
+      <View style={prdStyles.sectionBody}>
+        <LabeledBlock label="المشكلة">{data.executiveSummary.problem}</LabeledBlock>
+        <LabeledBlock label="الفرصة">{data.executiveSummary.opportunity}</LabeledBlock>
+        <LabeledBlock label="الحل">{data.executiveSummary.solution}</LabeledBlock>
+        <LabeledBlock label="النتيجة">{data.executiveSummary.outcome}</LabeledBlock>
+        <View style={{ marginTop: 6 }}>
+          <Text style={prdStyles.groupLabel}>أبرز الرؤى</Text>
+          <NumberedList items={data.executiveSummary.keyInsights} />
+        </View>
+      </View>
+    </Page>
+  );
+}
+
+/* ---------- 02 · تحليل المشكلة ---------- */
+function ProblemAnalysisPage({ data }) {
+  return (
+    <Page size="A4" style={prdStyles.page}>
+      <PageChrome />
+      <SectionHeading
+        number="02"
+        title="تحليل المشكلة"
+        lede="الوضع الحالي، الاحتكاك الكامن فيه، السبب الجذري وراءه، والوضع المنشود الذي نتجه إليه."
+        stars={scatterStars(5, 8, 150, 46)}
+      />
+      <View style={prdStyles.sectionBody}>
+        <LabeledBlock label="الوضع الحالي">{data.problemAnalysis.currentState}</LabeledBlock>
+        <LabeledBlock label="نقاط الاحتكاك">{data.problemAnalysis.friction}</LabeledBlock>
+        <LabeledBlock label="السبب الجذري">{data.problemAnalysis.rootCause}</LabeledBlock>
+        <LabeledBlock label="الفرصة">{data.problemAnalysis.opportunity}</LabeledBlock>
+        <LabeledBlock label="الوضع المنشود">{data.problemAnalysis.desiredState}</LabeledBlock>
+      </View>
+    </Page>
+  );
+}
+
+/* ---------- 03 · الأهداف ومؤشرات النجاح ---------- */
+function GoalsPage({ data }) {
+  const goalsRows = data.goals.map((g, i) => ({ id: i, ...g }));
+  return (
+    <Page size="A4" style={prdStyles.page}>
+      <PageChrome />
+      <SectionHeading
+        number="03"
+        title="الأهداف ومؤشرات النجاح"
+        lede="شكل النجاح، بالأرقام — كل هدف مقترن بطريقة قياسه فعليًا."
+        stars={scatterStars(8, 8, 150, 46)}
+      />
+      <EditorialTable columns={goalsColumns} rows={goalsRows} />
+    </Page>
+  );
+}
+
+/* ---------- 04 · المتطلبات الوظيفية ---------- */
+function FunctionalRequirementsPage({ data }) {
   /* priority/status stay fixed English enum values in the data model
      (validated server-side) — translated to Arabic only at render time.
      `priorityRaw` is carried through so the pill can style the "Must"
      case without re-deriving it from the translated label. */
   const frRows = data.functionalRequirements.map((fr) => ({ ...fr, priorityRaw: fr.priority }));
-  const goalsRows = data.goals.map((g, i) => ({ id: i, ...g }));
+  return (
+    <Page size="A4" style={prdStyles.page}>
+      <PageChrome />
+      <SectionHeading
+        number="04"
+        title="المتطلبات الوظيفية"
+        lede="كل متطلب، مرتّب بحسب أولوية MoSCoW — إلزامي، مفضّل، اختياري، مؤجل."
+        stars={scatterStars(13, 8, 150, 46)}
+      />
+      <EditorialTable columns={frColumns} rows={frRows} zebra />
+    </Page>
+  );
+}
+
+/* ---------- 05 · قصص المستخدم ---------- */
+function UserStoriesPage({ data }) {
+  return (
+    <Page size="A4" style={prdStyles.page}>
+      <PageChrome />
+      <SectionHeading
+        number="05"
+        title="قصص المستخدم"
+        lede="بكلمات المؤسس نفسه — وباللهجة التي صُمم أريب لفهمها فعليًا — مع معايير القبول الخاصة بكل قصة."
+        stars={scatterStars(17, 8, 150, 46)}
+      />
+      <View>
+        {data.userStories.map((s) => (
+          <View key={s.number} style={local.storyCard} wrap={false}>
+            <View style={local.storyHead}>
+              <Text style={local.storyLabel}>قصة المستخدم</Text>
+              <Ltr style={local.storyNum}>{s.number}</Ltr>
+            </View>
+            <View style={local.storyQuoteWrap}>
+              <Text style={prdStyles.quote}>{s.quote}</Text>
+            </View>
+            <Text style={local.storyCriteriaLabel}>معايير القبول</Text>
+            <DashList items={s.acceptance} />
+          </View>
+        ))}
+      </View>
+    </Page>
+  );
+}
+
+/* ---------- 06 · نطاق العمل ---------- */
+function ScopePage({ data }) {
+  return (
+    <Page size="A4" style={prdStyles.page}>
+      <PageChrome />
+      <SectionHeading
+        number="06"
+        title="نطاق العمل"
+        lede="ما يغطيه الإصدار الأول، وبنفس القدر من التعمّد، ما لا يغطيه."
+        stars={scatterStars(21, 8, 150, 46)}
+      />
+      <View style={prdStyles.twoCol}>
+        <View style={prdStyles.col}>
+          <View style={local.scopeHead}>
+            <Text style={local.scopeHeadText}>ضمن النطاق</Text>
+          </View>
+          <DashList items={data.scope.inScope} />
+        </View>
+        <View style={prdStyles.col}>
+          <View style={local.scopeHead}>
+            <Text style={local.scopeHeadText}>خارج النطاق</Text>
+          </View>
+          <DashList items={data.scope.outOfScope} />
+        </View>
+      </View>
+    </Page>
+  );
+}
+
+/* ---------- 07 · الافتراضات والأسئلة المفتوحة والحوكمة ---------- */
+function AssumptionsPage({ data }) {
   const openQRows = data.openQuestions.map((q, i) => ({ id: i, ...q }));
   const govRows = data.governance.map((g, i) => ({ id: i, ...g, status: translateStatus(g.status) }));
+  return (
+    <Page size="A4" style={prdStyles.page}>
+      <PageChrome />
+      <SectionHeading
+        number="07"
+        title="الافتراضات والأسئلة المفتوحة"
+        lede="ما نأخذه كمُسلّمات، وما لا يزال دون حل، وسجل الإصدارات وراء هذا المستند."
+        stars={scatterStars(29, 8, 150, 46)}
+      />
+      <View style={local.block}>
+        <Text style={prdStyles.groupLabel}>الافتراضات</Text>
+        <NumberedList items={data.assumptions} />
+      </View>
+      <View style={local.block} break={false}>
+        <Text style={prdStyles.groupLabel}>الأسئلة المفتوحة</Text>
+        <EditorialTable columns={openQColumns} rows={openQRows} />
+      </View>
+      <View style={local.block}>
+        <Text style={prdStyles.groupLabel}>الحوكمة وسجل الإصدارات</Text>
+        <EditorialTable columns={govColumns} rows={govRows} />
+      </View>
+    </Page>
+  );
+}
+
+/* The document's section order, and the labels the preview's table of
+   contents shows. Exported so the TOC is derived from the template
+   rather than restated — a hardcoded copy silently rots the moment a
+   section is added, reordered, or renamed. */
+export const PRD_SECTIONS = [
+  { id: "cover", label: "الغلاف", Component: CoverPage },
+  { id: "executive-summary", label: "01 · الملخص التنفيذي", Component: ExecutiveSummaryPage },
+  { id: "problem-analysis", label: "02 · تحليل المشكلة", Component: ProblemAnalysisPage },
+  { id: "goals", label: "03 · الأهداف ومؤشرات النجاح", Component: GoalsPage },
+  { id: "functional-reqs", label: "04 · المتطلبات الوظيفية", Component: FunctionalRequirementsPage },
+  { id: "user-stories", label: "05 · قصص المستخدم", Component: UserStoriesPage },
+  { id: "scope", label: "06 · نطاق العمل", Component: ScopePage },
+  { id: "assumptions", label: "07 · الافتراضات والأسئلة المفتوحة", Component: AssumptionsPage },
+];
+
+export function PRDDocument({ data = prdSampleData }) {
+  registerPRDFonts();
 
   return (
     <Document
@@ -285,184 +529,9 @@ export function PRDDocument({ data = prdSampleData }) {
       creator="Areeb PRD Generator"
       language="ar"
     >
-      {/* ---------- COVER ---------- */}
-      <Page size="A4" style={prdStyles.coverPage}>
-        <View style={local.coverTop}>
-          <View style={local.coverMark}>
-            <Image src={AREEB_LOGO_URL} style={local.coverLogo} />
-            <Text style={local.coverWordmark}>AREEB</Text>
-          </View>
-          <Text style={local.coverKicker}>مستند متطلبات المنتج</Text>
-        </View>
-
-        <StarField
-          stars={scatterStars(11, 24, 300, 150)}
-          width={300}
-          height={150}
-          style={{ position: "absolute", top: 120, right: 56 }}
-        />
-
-        <View style={local.coverTitleWrap}>
-          <Text style={local.coverDocType}>مستند متطلبات المنتج</Text>
-          <Text style={local.coverTitle}>{data.meta.projectName}</Text>
-          <Text style={local.coverLede}>{data.meta.shortDescription}</Text>
-          <View style={local.coverRule} />
-        </View>
-
-        <View style={local.coverMetaRow}>
-          <View style={local.coverMetaItem}>
-            <Text style={local.coverMetaLabel}>رقم المستند</Text>
-            <Ltr style={local.coverMetaValueLtr}>{data.meta.prdId}</Ltr>
-          </View>
-          <View style={local.coverMetaItem}>
-            <Text style={local.coverMetaLabel}>الإصدار</Text>
-            <Ltr style={local.coverMetaValueLtr}>{data.meta.version}</Ltr>
-          </View>
-          <View style={local.coverMetaItem}>
-            <Text style={local.coverMetaLabel}>الحالة</Text>
-            <Text style={local.coverMetaValue}>{translateStatus(data.meta.status)}</Text>
-          </View>
-          <View style={local.coverMetaItem}>
-            <Text style={local.coverMetaLabel}>التاريخ</Text>
-            <Ltr style={local.coverMetaValueLtr}>{data.meta.date}</Ltr>
-          </View>
-        </View>
-      </Page>
-
-      {/* ---------- 01 · الملخص التنفيذي ---------- */}
-      <Page size="A4" style={prdStyles.page}>
-        <PageChrome />
-        <SectionHeading
-          number="01"
-          title="الملخص التنفيذي"
-          lede={data.executiveSummary.description}
-          stars={scatterStars(2, 8, 150, 46)}
-        />
-        <View style={prdStyles.sectionBody}>
-          <LabeledBlock label="المشكلة">{data.executiveSummary.problem}</LabeledBlock>
-          <LabeledBlock label="الفرصة">{data.executiveSummary.opportunity}</LabeledBlock>
-          <LabeledBlock label="الحل">{data.executiveSummary.solution}</LabeledBlock>
-          <LabeledBlock label="النتيجة">{data.executiveSummary.outcome}</LabeledBlock>
-          <View style={{ marginTop: 6 }}>
-            <Text style={prdStyles.groupLabel}>أبرز الرؤى</Text>
-            <NumberedList items={data.executiveSummary.keyInsights} />
-          </View>
-        </View>
-      </Page>
-
-      {/* ---------- 02 · تحليل المشكلة ---------- */}
-      <Page size="A4" style={prdStyles.page}>
-        <PageChrome />
-        <SectionHeading
-          number="02"
-          title="تحليل المشكلة"
-          lede="الوضع الحالي، الاحتكاك الكامن فيه، السبب الجذري وراءه، والوضع المنشود الذي نتجه إليه."
-          stars={scatterStars(5, 8, 150, 46)}
-        />
-        <View style={prdStyles.sectionBody}>
-          <LabeledBlock label="الوضع الحالي">{data.problemAnalysis.currentState}</LabeledBlock>
-          <LabeledBlock label="نقاط الاحتكاك">{data.problemAnalysis.friction}</LabeledBlock>
-          <LabeledBlock label="السبب الجذري">{data.problemAnalysis.rootCause}</LabeledBlock>
-          <LabeledBlock label="الفرصة">{data.problemAnalysis.opportunity}</LabeledBlock>
-          <LabeledBlock label="الوضع المنشود">{data.problemAnalysis.desiredState}</LabeledBlock>
-        </View>
-      </Page>
-
-      {/* ---------- 03 · الأهداف ومؤشرات النجاح ---------- */}
-      <Page size="A4" style={prdStyles.page}>
-        <PageChrome />
-        <SectionHeading
-          number="03"
-          title="الأهداف ومؤشرات النجاح"
-          lede="شكل النجاح، بالأرقام — كل هدف مقترن بطريقة قياسه فعليًا."
-          stars={scatterStars(8, 8, 150, 46)}
-        />
-        <EditorialTable columns={goalsColumns} rows={goalsRows} />
-      </Page>
-
-      {/* ---------- 04 · المتطلبات الوظيفية ---------- */}
-      <Page size="A4" style={prdStyles.page}>
-        <PageChrome />
-        <SectionHeading
-          number="04"
-          title="المتطلبات الوظيفية"
-          lede="كل متطلب، مرتّب بحسب أولوية MoSCoW — إلزامي، مفضّل، اختياري، مؤجل."
-          stars={scatterStars(13, 8, 150, 46)}
-        />
-        <EditorialTable columns={frColumns} rows={frRows} zebra />
-      </Page>
-
-      {/* ---------- 05 · قصص المستخدم ---------- */}
-      <Page size="A4" style={prdStyles.page}>
-        <PageChrome />
-        <SectionHeading
-          number="05"
-          title="قصص المستخدم"
-          lede="بكلمات المؤسس نفسه — وباللهجة التي صُمم أريب لفهمها فعليًا — مع معايير القبول الخاصة بكل قصة."
-          stars={scatterStars(17, 8, 150, 46)}
-        />
-        <View>
-          {data.userStories.map((s) => (
-            <View key={s.number} style={local.storyCard} wrap={false}>
-              <View style={local.storyHead}>
-                <Text style={local.storyLabel}>قصة المستخدم</Text>
-                <Ltr style={local.storyNum}>{s.number}</Ltr>
-              </View>
-              <Text style={prdStyles.quote}>{s.quote}</Text>
-              <Text style={local.storyCriteriaLabel}>معايير القبول</Text>
-              <DashList items={s.acceptance} />
-            </View>
-          ))}
-        </View>
-      </Page>
-
-      {/* ---------- 06 · نطاق العمل ---------- */}
-      <Page size="A4" style={prdStyles.page}>
-        <PageChrome />
-        <SectionHeading
-          number="06"
-          title="نطاق العمل"
-          lede="ما يغطيه الإصدار الأول، وبنفس القدر من التعمّد، ما لا يغطيه."
-          stars={scatterStars(21, 8, 150, 46)}
-        />
-        <View style={prdStyles.twoCol}>
-          <View style={prdStyles.col}>
-            <View style={local.scopeHead}>
-              <Text style={local.scopeHeadText}>ضمن النطاق</Text>
-            </View>
-            <DashList items={data.scope.inScope} />
-          </View>
-          <View style={prdStyles.col}>
-            <View style={local.scopeHead}>
-              <Text style={local.scopeHeadText}>خارج النطاق</Text>
-            </View>
-            <DashList items={data.scope.outOfScope} />
-          </View>
-        </View>
-      </Page>
-
-      {/* ---------- 07 · الافتراضات والأسئلة المفتوحة والحوكمة ---------- */}
-      <Page size="A4" style={prdStyles.page}>
-        <PageChrome />
-        <SectionHeading
-          number="07"
-          title="الافتراضات والأسئلة المفتوحة"
-          lede="ما نأخذه كمُسلّمات، وما لا يزال دون حل، وسجل الإصدارات وراء هذا المستند."
-          stars={scatterStars(29, 8, 150, 46)}
-        />
-        <View style={local.block}>
-          <Text style={prdStyles.groupLabel}>الافتراضات</Text>
-          <NumberedList items={data.assumptions} />
-        </View>
-        <View style={local.block} break={false}>
-          <Text style={prdStyles.groupLabel}>الأسئلة المفتوحة</Text>
-          <EditorialTable columns={openQColumns} rows={openQRows} />
-        </View>
-        <View style={local.block}>
-          <Text style={prdStyles.groupLabel}>الحوكمة وسجل الإصدارات</Text>
-          <EditorialTable columns={govColumns} rows={govRows} />
-        </View>
-      </Page>
+      {PRD_SECTIONS.map(({ id, Component }) => (
+        <Component key={id} data={data} />
+      ))}
     </Document>
   );
 }
@@ -515,6 +584,47 @@ export async function countPdfPages(blob) {
   }
   const matches = text.match(/\/Type\s*\/Page(?![A-Za-z])/g);
   return matches ? matches.length : 0;
+}
+
+/* ---------- real start page for every section ----------
+   The preview's table of contents needs the page each section actually
+   begins on. That cannot be hardcoded: @react-pdf/renderer paginates
+   overflow, so sections 04 and 07 (see this file's header note) spill onto
+   continuation pages and push everything after them down — a fixed 1..8
+   mapping is wrong for real documents and was landing TOC clicks on the
+   wrong page.
+
+   Because a <Page> never flows into its sibling, each section paginates
+   identically alone and in context. So rendering the sections separately
+   and running a cumulative sum over their page counts gives exact start
+   pages, with no PDF-outline parsing and no extra dependency. The renders
+   are independent, so they go out in parallel.
+
+   A section whose count comes back unusable falls back to 1 page rather
+   than 0: a 0 would alias its start page onto the next section's and
+   silently corrupt every entry below it. */
+export async function measureSectionPages(data = prdSampleData) {
+  registerPRDFonts();
+  const counts = await Promise.all(
+    PRD_SECTIONS.map(({ Component }) =>
+      pdf(
+        <Document>
+          <Component data={data} />
+        </Document>,
+      )
+        .toBlob()
+        .then(countPdfPages)
+        .then((n) => (Number.isInteger(n) && n > 0 ? n : 1))
+        .catch(() => 1),
+    ),
+  );
+
+  let page = 1;
+  return PRD_SECTIONS.map((section, i) => {
+    const entry = { id: section.id, label: section.label, page, pages: counts[i] };
+    page += counts[i];
+    return entry;
+  });
 }
 
 export function triggerPRDDownload(blob, filename) {

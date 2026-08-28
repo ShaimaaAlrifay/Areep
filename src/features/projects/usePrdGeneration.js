@@ -5,7 +5,7 @@ import { mapPrdToDocumentData } from '../../lib/prdMapper'
 import { generatePRD } from '../../services/prdService'
 import { updateProjectPrd } from '../../services/projectsService'
 import { listRequirements } from '../../services/requirementsService'
-import { buildPRDBlob, triggerPRDDownload } from '../../templates/areep/prdPdf'
+import { EVENTS, track } from '../../lib/analytics'
 
 const GENERIC_ERROR = 'واجهنا مشكلة أثناء بناء الوثيقة. حاول مرة ثانية.'
 const NO_REQUIREMENTS_ERROR = 'ما فيه متطلبات كافية لبناء الوثيقة بعد. أكمل المحادثة مع أريب شوي.'
@@ -32,6 +32,14 @@ const RENDER_ERROR = 'الوثيقة اتولّدت بس ما قدرنا نجه�
  *  5. navigate to the preview, carrying both the PRD and the grouped
  *     requirements in router state so the preview renders instantly and
  *     with the goals page intact.
+ *
+ * The PDF template is imported dynamically at step 4 rather than at the
+ * top of this file. It pulls in @react-pdf/renderer, which is larger than
+ * the rest of the application put together; a static import meant every
+ * user who merely opened a chat downloaded a whole PDF engine on the
+ * chance they might later press "generate". The import sits inside the
+ * existing try, so a failed chunk fetch degrades exactly like a failed
+ * render already did.
  *
  * Step 4 failing does not fail the whole flow: the document itself exists
  * and is persisted at that point, so the user is still taken to the
@@ -72,10 +80,14 @@ export function usePrdGeneration(projectId, project, providedRequirementsByType 
       console.warn('[areep] could not persist PRD (likely unmigrated prd_data column):', persistError.message)
     }
 
+    track(EVENTS.PRD_GENERATED, { requirements: countGrouped(grouped) })
+
     let renderError = null
     try {
+      const { buildPRDBlob, triggerPRDDownload } = await import('../../templates/areep/prdPdf')
       const { blob, filename } = await buildPRDBlob(mapPrdToDocumentData(prd, grouped, project))
       triggerPRDDownload(blob, filename)
+      track(EVENTS.PRD_EXPORTED, { format: 'pdf', source: 'generation' })
     } catch (err) {
       console.warn('[areep] PRD PDF render failed, continuing to preview:', err?.message || err)
       renderError = RENDER_ERROR

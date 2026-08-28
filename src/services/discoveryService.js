@@ -1,11 +1,7 @@
 // Thin client for the areep/server Express backend's discovery endpoint.
-// Distinct from VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY (Supabase talks
-// directly to the browser) — this hits our own small Node proxy that
-// holds the Gemini API key, mirroring the sibling portfolio's
-// `API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001"`
-// pattern but under its own var name (VITE_AREEP_API_URL) so it isn't
-// confused with that separate, differently-deployed project's own env var.
-const API_BASE = import.meta.env.VITE_AREEP_API_URL || 'http://localhost:3002'
+// The base URL (and the check that it is deployable) lives in apiBase.js,
+// which both of these clients share.
+import { API_BASE } from './apiBase'
 
 const NETWORK_ERROR_MESSAGE = 'تعذّر الاتصال بخادم أريب. تأكد إنه شغّال (npm run server) وحاول مرة ثانية.'
 const GENERIC_ERROR_MESSAGE = 'ما قدرت أحلل الإجابة حالياً. حاول مرة ثانية.'

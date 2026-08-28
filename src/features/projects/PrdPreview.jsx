@@ -5,25 +5,12 @@ import { STATUS_LABELS } from '../../lib/constants'
 import { buildPrdMarkdown, triggerTextDownload } from '../../lib/prdMarkdown'
 import { mapPrdToDocumentData } from '../../lib/prdMapper'
 import { groupRequirementsByType, requirementsFromDiscoveryState } from '../../lib/requirementGroups'
+import { EVENTS, track } from '../../lib/analytics'
 import { getProjectPrd } from '../../services/projectsService'
 import { listRequirements } from '../../services/requirementsService'
-import { buildPRDBlob, countPdfPages, triggerPRDDownload } from '../../templates/areep/prdPdf'
+import { buildPRDBlob, countPdfPages, measureSectionPages, triggerPRDDownload } from '../../templates/areep/prdPdf'
 import { ProjectTabs } from './ChatPage'
 
-// Mirrors prdPdf.jsx's own page order exactly (cover + 7 numbered
-// sections) — informational + a jump target for the left-pane table of
-// contents, not derived programmatically since the page count per
-// section is fixed by the template's own layout.
-const TOC = [
-  { page: 1, label: 'الغلاف' },
-  { page: 2, label: '01 · الملخص التنفيذي' },
-  { page: 3, label: '02 · تحليل المشكلة' },
-  { page: 4, label: '03 · الأهداف ومؤشرات النجاح' },
-  { page: 5, label: '04 · المتطلبات الوظيفية' },
-  { page: 6, label: '05 · قصص المستخدم' },
-  { page: 7, label: '06 · نطاق العمل' },
-  { page: 8, label: '07 · الافتراضات والأسئلة المفتوحة' },
-]
 
 /**
  * PRD Preview (spec section 31) — a simplified 3-pane document-editor
@@ -93,12 +80,36 @@ export function PrdPreview() {
   }, [projectId, project, requirementsByType])
 
   const [activePage, setActivePage] = useState(1)
+  const [toc, setToc] = useState([])
   const [pdf, setPdf] = useState({ status: 'idle', blob: null, url: null, filename: null, pageCount: null, error: null })
 
   const mapped = useMemo(
     () => (prd ? mapPrdToDocumentData(prd, requirementsByType || {}, project || {}) : null),
     [prd, requirementsByType, project],
   )
+
+  /*
+   * The table of contents is measured from the same data the document is
+   * built from, rather than declared — see measureSectionPages(). It runs
+   * alongside the main build instead of after it so the TOC and the
+   * document appear together; a failure here only costs the TOC, so it
+   * degrades to an empty list rather than blocking the preview.
+   */
+  useEffect(() => {
+    if (!mapped) return undefined
+    let cancelled = false
+    measureSectionPages(mapped)
+      .then((sections) => {
+        if (!cancelled) setToc(sections)
+      })
+      .catch((err) => {
+        console.warn('[areep] could not measure PRD section pages:', err.message)
+        if (!cancelled) setToc([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [mapped])
 
   useEffect(() => {
     if (!mapped) return undefined
@@ -165,8 +176,8 @@ export function PrdPreview() {
           <aside className="prd-pane prd-toc">
             <h2 className="prd-pane-title">محتويات الوثيقة</h2>
             <ul className="prd-toc-list">
-              {TOC.map((item) => (
-                <li key={item.page}>
+              {toc.map((item) => (
+                <li key={item.id}>
                   <button
                     type="button"
                     className={`prd-toc-item${activePage === item.page ? ' active' : ''}`}
@@ -183,18 +194,36 @@ export function PrdPreview() {
           <div className="prd-document">
             {pdf.status === 'building' && <div className="page-loading">أريب يجهّز الملف…</div>}
             {pdf.status === 'error' && <p className="form-error">{pdf.error}</p>}
-            {pdf.status === 'ready' && <iframe title="معاينة وثيقة PRD" src={`${pdf.url}#page=${activePage}`} className="prd-frame" />}
+            {/*
+              `key` is load-bearing, not cosmetic: the only thing that changes
+              between pages is the URL fragment, and a browser will not
+              re-navigate an iframe whose src differs only after the `#`. React
+              would happily patch the attribute and Chrome's PDF viewer would
+              ignore it. Keying on activePage tears the element down and mounts
+              a fresh one, so the viewer reads `#page=N` on its initial load —
+              the only point at which it honours the fragment.
+            */}
+            {pdf.status === 'ready' && (
+              <iframe key={activePage} title="معاينة وثيقة PRD" src={`${pdf.url}#page=${activePage}`} className="prd-frame" />
+            )}
           </div>
 
           <aside className="prd-pane prd-actions">
             <h2 className="prd-pane-title">إجراءات</h2>
-            <button type="button" className="btn btn-primary btn-block" disabled={pdf.status !== 'ready'} onClick={() => pdf.blob && triggerPRDDownload(pdf.blob, pdf.filename)}>
+            <button type="button" className="btn btn-primary btn-block" disabled={pdf.status !== 'ready'} onClick={() => {
+                if (!pdf.blob) return
+                triggerPRDDownload(pdf.blob, pdf.filename)
+                track(EVENTS.PRD_EXPORTED, { format: 'pdf', source: 'preview' })
+              }}>
               تصدير PDF
             </button>
             <button
               type="button"
               className="btn btn-secondary btn-block"
-              onClick={() => triggerTextDownload(buildPrdMarkdown(prd), `${pdf.filename ? pdf.filename.replace(/\.pdf$/i, '') : 'PRD'}.md`)}
+              onClick={() => {
+                triggerTextDownload(buildPrdMarkdown(prd), `${pdf.filename ? pdf.filename.replace(/\.pdf$/i, '') : 'PRD'}.md`)
+                track(EVENTS.PRD_EXPORTED, { format: 'markdown', source: 'preview' })
+              }}
             >
               تصدير Markdown
             </button>

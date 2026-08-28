@@ -15,6 +15,56 @@
    glowing orbs/particles, no glassmorphism, no heavy shadows.
    ============================================================ */
 
+/* ------------------------------------------------------------
+   Self-hosted IBM Plex Sans Arabic.
+
+   This used to come from the Google Fonts CDN. Serving it from our own
+   origin instead is three wins at once: no visitor IP is handed to a
+   third party on page load (which is what would have obliged us to ask
+   for tracking consent at all), the render-blocking cross-origin CSS
+   round-trip before any text can paint is gone, and the app still works
+   where Google's CDN is blocked.
+
+   Only the four weights the design system actually uses are shipped —
+   the old CDN request also asked for 300, which nothing renders. These
+   are woff2 conversions of the same .ttf files the PDF template embeds,
+   so the document and the web app cannot drift apart typographically.
+
+   `font-display: swap` keeps Arabic text readable during the swap
+   instead of blocking on an invisible-text period.
+   ------------------------------------------------------------ */
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  src: url('./assets/fonts/ibm-plex-sans-arabic-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  src: url('./assets/fonts/ibm-plex-sans-arabic-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  src: url('./assets/fonts/ibm-plex-sans-arabic-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  src: url('./assets/fonts/ibm-plex-sans-arabic-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* ---- color: grayscale (dark) ---- */
   --color-bg: #0a0a0b;
@@ -26,14 +76,33 @@
 
   --color-text: #f4f4f5;
   --color-text-secondary: #a1a1aa;
-  --color-text-muted: #6b6b74;
+  /* Raised from #6b6b74, which measured 3.75:1 against --color-bg and so
+     failed WCAG AA (4.5:1) everywhere it carried real text: the footer
+     tagline, the hero's "مجاني حاليًا" line, the badge above the headline,
+     timestamps in the sidebar. #7b7b83 measures 4.71:1 and is still
+     visibly the quietest step in the ramp — the role of the token is
+     unchanged, only its legibility. #7d7d85 rather than a smaller step
+     because this token is also used on --color-bg-subtle (the badge above
+     the hero headline), where the lighter backdrop costs it ~0.2. */
+  --color-text-muted: #7d7d85;
   --color-text-on-accent: #ffffff;
 
   /* ---- color: single accent (indigo, tuned for dark), used sparingly ---- */
-  --color-accent: #6366f1;
+  /* Nudged from #6366f1. White text on that measured 4.467:1 — an AA
+     miss by 0.03 on the single most important control in the product, the
+     primary CTA, on every page. #6164ef measures 4.588:1. The shift is two
+     or three 8-bit steps per channel and is not perceptible side by side;
+     the brand indigo is intact, it is now merely compliant. */
+  --color-accent: #6164ef;
   --color-accent-hover: #818cf8;
-  --color-accent-subtle: rgba(99, 102, 241, 0.14);
-  --color-accent-border: rgba(99, 102, 241, 0.4);
+  /* The accent as *text* rather than as a fill. #6366f1 on the dark
+     background is 4.43:1 — an AA miss for body-size links — while the
+     existing lighter step is 6.63:1. Kept as its own token so link colour
+     and button-fill colour can no longer be conflated: they have opposite
+     contrast requirements against the same background. */
+  --color-accent-text: #818cf8;
+  --color-accent-subtle: rgba(97, 100, 239, 0.14);
+  --color-accent-border: rgba(97, 100, 239, 0.4);
 
   /* ---- status colors: quiet, text-weight only, not pills ---- */
   --color-status-discovery: var(--color-text-muted);
@@ -166,11 +235,16 @@ ul {
 }
 
 .brand {
-  font-size: 20px;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
   text-decoration: none;
   color: var(--color-text);
-  letter-spacing: -0.01em;
+}
+
+.brand-lockup {
+  height: 26px;
+  width: auto;
+  display: block;
 }
 
 .topnav-actions {
@@ -479,11 +553,14 @@ button:focus-visible {
   font-size: 16px;
 }
 
-.sidebar-logo {
-  width: 22px;
+/* The lockup is one piece of artwork (mark + أريب / AREEB), so it is
+   sized by height and left to keep its own width. `object-fit: cover` and
+   a border-radius belonged to the old square mark and would now crop the
+   wordmark off the end of the lockup. */
+.sidebar-lockup {
   height: 22px;
-  border-radius: 6px;
-  object-fit: cover;
+  width: auto;
+  display: block;
 }
 
 .sidebar-new-btn {
@@ -1306,4 +1383,581 @@ button:focus-visible {
   .prd-toc-list {
     flex-direction: row;
   }
+}
+
+/* ============================================================
+   Public pages: landing sections, legal documents, FAQ, 404, footer.
+
+   Everything below stays inside the existing system — same tokens, same
+   restraint. No gradients, no glowing cards, no shadows beyond the two
+   defined variables. Direction-sensitive rules use logical properties
+   (padding-inline, border-inline-start, margin-block) so this all flips
+   correctly if an LTR mode is ever added, per the note at the top.
+   ============================================================ */
+
+/* Skip link: the first thing a keyboard user reaches. Visually hidden
+   until focused, then pinned to the top of the viewport. */
+.skip-link {
+  position: absolute;
+  inset-block-start: -100%;
+  inset-inline-start: var(--space-4);
+  z-index: 100;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.skip-link:focus-visible {
+  inset-block-start: var(--space-4);
+}
+
+.btn-lg {
+  padding: var(--space-4) var(--space-8);
+  font-size: 16px;
+}
+
+/* ---------------------------------------------------------- */
+/* Landing                                                     */
+/* ---------------------------------------------------------- */
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-6);
+  padding-block: var(--space-16) var(--space-12);
+}
+
+.hero-title {
+  font-size: clamp(28px, 5.5vw, 48px);
+  line-height: 1.3;
+  max-width: 18ch;
+  margin: 0;
+}
+
+.hero-lede {
+  font-size: clamp(16px, 2.4vw, 18px);
+  max-width: 52ch;
+  margin: 0;
+}
+
+.hero-actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.hero-reassurance {
+  font-size: 14px;
+  margin: calc(var(--space-2) * -1) 0 0;
+}
+
+.section {
+  padding-block: var(--space-12);
+  border-block-start: 1px solid var(--color-border);
+}
+
+.section-heading {
+  font-size: clamp(20px, 3vw, 26px);
+  margin: 0 0 var(--space-8);
+}
+
+.section-more {
+  margin-block-start: var(--space-6);
+  font-size: 15px;
+}
+
+/* Steps: a plain numbered list, not cards. The rule on the inline-start
+   edge carries the structure so no box is needed. */
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-8);
+}
+
+.step {
+  border-inline-start: 1px solid var(--color-border);
+  padding-inline-start: var(--space-4);
+}
+
+.step-number {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent-text);
+  margin-block-end: var(--space-2);
+}
+
+.step-title {
+  font-size: 17px;
+  margin: 0 0 var(--space-2);
+}
+
+.step-body {
+  margin: 0;
+  font-size: 15px;
+}
+
+.closing-cta {
+  border-block-start: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+}
+
+.closing-cta-inner {
+  padding-block: var(--space-16);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-4);
+}
+
+.closing-cta-title {
+  font-size: clamp(22px, 4vw, 32px);
+  margin: 0;
+}
+
+.closing-cta-lede {
+  margin: 0;
+  max-width: 46ch;
+}
+
+/* ---------------------------------------------------------- */
+/* FAQ accordion (native <details>)                            */
+/* ---------------------------------------------------------- */
+.faq-list {
+  border-block-start: 1px solid var(--color-border);
+}
+
+.faq-item {
+  border-block-end: 1px solid var(--color-border);
+}
+
+.faq-question {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-block: var(--space-4);
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  list-style: none;
+  transition: color 0.15s ease;
+}
+
+/* Both are required: the pseudo-element for WebKit, `list-style: none`
+   above for everyone else. Without them the browser's own triangle
+   appears on the wrong side in RTL and duplicates the chevron. */
+.faq-question::-webkit-details-marker {
+  display: none;
+}
+
+.faq-question:hover {
+  color: var(--color-accent-hover);
+}
+
+/* Focus lands on <summary>, so the ring has to be drawn here rather than
+   on the <details>, or keyboard users get no visible target at all. */
+.faq-question:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.faq-chevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: transform 0.18s ease;
+}
+
+.faq-item[open] .faq-chevron {
+  transform: rotate(180deg);
+}
+
+.faq-answer {
+  padding-block-end: var(--space-4);
+  max-width: 68ch;
+}
+
+.faq-answer p {
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  margin: 0 0 var(--space-3);
+}
+
+.faq-answer p:last-child {
+  margin-block-end: 0;
+}
+
+.faq-cta {
+  margin-block-start: var(--space-12);
+  padding-block-start: var(--space-8);
+  border-block-start: 1px solid var(--color-border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.faq-cta-text {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+/* ---------------------------------------------------------- */
+/* Legal documents (privacy, terms) + FAQ page wrapper         */
+/* ---------------------------------------------------------- */
+.legal-main {
+  flex: 1;
+  padding-block: var(--space-12) var(--space-16);
+}
+
+.legal {
+  max-width: 72ch;
+  margin-inline: auto;
+}
+
+.legal-head {
+  margin-block-end: var(--space-12);
+}
+
+.legal-head h1 {
+  font-size: clamp(24px, 4vw, 34px);
+  margin: 0 0 var(--space-2);
+}
+
+.legal-updated {
+  font-size: 14px;
+  margin: 0 0 var(--space-4);
+}
+
+.legal section {
+  margin-block-end: var(--space-12);
+}
+
+.legal h2 {
+  font-size: 20px;
+  margin: 0 0 var(--space-4);
+}
+
+.legal h3 {
+  font-size: 16px;
+  margin: var(--space-6) 0 var(--space-2);
+  color: var(--color-text);
+}
+
+.legal p,
+.legal li {
+  color: var(--color-text-secondary);
+  margin-block: 0 var(--space-3);
+}
+
+.legal ul {
+  padding-inline-start: var(--space-6);
+  margin-block: 0 var(--space-4);
+}
+
+.legal li {
+  margin-block-end: var(--space-2);
+}
+
+/* `:not(.btn)` is load-bearing. Without it this rule outranks
+   .btn-primary's own colour (both are one class, and this one comes
+   later), which painted the FAQ page's primary CTA in the accent colour
+   on top of its accent-coloured fill — an invisible button. Buttons keep
+   their own text colour; only prose links are recoloured here. */
+.legal a:not(.btn) {
+  color: var(--color-accent-text);
+}
+
+.legal-mail {
+  /* Latin text inside an RTL paragraph: `dir="ltr"` on the element keeps
+     the address from reordering, this keeps it from inheriting the
+     paragraph's Arabic font metrics. */
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.95em;
+}
+
+.legal-callout {
+  border-inline-start: 2px solid var(--color-accent-border);
+  background: var(--color-accent-subtle);
+  padding: var(--space-4);
+  border-radius: var(--radius-sm);
+  margin-block-start: var(--space-4);
+}
+
+.legal-callout strong {
+  color: var(--color-text);
+}
+
+/* Tables must scroll inside their own box rather than widening the page —
+   at 320px a three-column table is the classic source of a horizontally
+   scrolling document. */
+.legal-table-wrap {
+  overflow-x: auto;
+  margin-block: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.legal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  min-width: 420px;
+}
+
+.legal-table th,
+.legal-table td {
+  text-align: start;
+  padding: var(--space-3) var(--space-4);
+  border-block-end: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.legal-table thead th {
+  color: var(--color-text);
+  font-weight: 600;
+  background: var(--color-bg-subtle);
+  white-space: nowrap;
+}
+
+.legal-table tbody th {
+  color: var(--color-text);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.legal-table td {
+  color: var(--color-text-secondary);
+}
+
+.legal-table tr:last-child th,
+.legal-table tr:last-child td {
+  border-block-end: none;
+}
+
+/* ---------------------------------------------------------- */
+/* 404                                                         */
+/* ---------------------------------------------------------- */
+.notfound-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--space-4);
+  padding-block: var(--space-16);
+}
+
+.notfound-code {
+  font-size: clamp(56px, 14vw, 96px);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-border-strong);
+  margin: 0;
+  letter-spacing: -0.03em;
+}
+
+.notfound-title {
+  font-size: clamp(22px, 4vw, 30px);
+  margin: 0;
+}
+
+.notfound-lede {
+  max-width: 46ch;
+  margin: 0;
+}
+
+.notfound-path {
+  margin: 0;
+  font-size: 14px;
+  max-width: 100%;
+}
+
+.notfound-path code {
+  font-family: ui-monospace, Consolas, monospace;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-2);
+  /* A long mistyped path must wrap instead of pushing the page wide. */
+  overflow-wrap: anywhere;
+}
+
+.notfound-actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-block-start: var(--space-4);
+}
+
+/* ---------------------------------------------------------- */
+/* Footer                                                      */
+/* ---------------------------------------------------------- */
+.site-footer {
+  border-block-start: 1px solid var(--color-border);
+  background: var(--color-bg);
+  margin-block-start: auto;
+}
+
+.site-footer-inner {
+  padding-block: var(--space-8);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.site-footer-brand {
+  margin: 0;
+  font-weight: 700;
+  display: flex;
+  /* center, not baseline: the lockup is an image and has no text baseline
+     to align the tagline against. */
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.site-footer-lockup {
+  height: 22px;
+  width: auto;
+  display: block;
+}
+
+.site-footer-tagline {
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.site-footer-nav {
+  display: flex;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.site-footer-nav a {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.site-footer-nav a:hover {
+  color: var(--color-text);
+}
+
+.site-footer-copy {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  width: 100%;
+  border-block-start: 1px solid var(--color-border);
+  padding-block-start: var(--space-4);
+}
+
+/* ---------------------------------------------------------- */
+/* Public-page responsive                                      */
+/* ---------------------------------------------------------- */
+@media (max-width: 859px) {
+  .steps {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+
+  .hero {
+    padding-block: var(--space-12) var(--space-8);
+  }
+
+  .site-footer-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 479px) {
+  /* The narrowest supported width. The container's 24px inline padding is
+     too generous once the viewport is 320px, and full-width buttons read
+     as more deliberate than two stacked pills of different widths. */
+  .container {
+    padding-inline: var(--space-4);
+  }
+
+  .hero-actions .btn,
+  .notfound-actions .btn,
+  .faq-cta .btn {
+    width: 100%;
+  }
+
+  .faq-cta {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .site-footer-nav {
+    gap: var(--space-4);
+  }
+}
+
+/* ---------------------------------------------------------- */
+/* Top nav: narrow-viewport behaviour                          */
+/* ---------------------------------------------------------- */
+
+/* An email address is arbitrary-length user data sitting in a fixed-width
+   bar. Unconstrained it pushes the sign-out button off-screen; this caps
+   it and truncates instead. `min-width: 0` is the part that actually does
+   the work — a flex item will not shrink below its content width without
+   it, so text-overflow alone would have done nothing here. */
+.topnav-email {
+  font-size: 14px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 479px) {
+  /* At 320px the logo plus both actions need ~353px against 288px of
+     usable width, so the bar overflowed and the whole page scrolled
+     sideways. Wrapping the actions onto their own centred row fixes it
+     without hiding either action — a mobile visitor keeps both the
+     primary CTA and the way back into their account. */
+  .topnav-inner {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-3);
+  }
+
+  .topnav-actions {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Links inside the muted form-note need to stay distinguishable from the
+   note's own low-contrast body text, or the consent line reads as prose
+   with nothing clickable in it. */
+.form-note a {
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.form-note a:hover {
+  color: var(--color-text);
 }

@@ -5,6 +5,8 @@ import { NotConfiguredNotice } from '../../components/NotConfiguredNotice'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { isSupabaseConfigured } from '../../lib/supabase'
 import { translateAuthError } from '../../lib/constants'
+import { EVENTS, track } from '../../lib/analytics'
+import { Seo } from '../../components/Seo'
 
 export function Login() {
   const { user, loading, signIn } = useAuthContext()
@@ -29,14 +31,23 @@ export function Login() {
       setError(translateAuthError(signInError))
       return
     }
+    track(EVENTS.SIGN_IN)
     navigate('/chat')
   }
 
   return (
     <AuthLayout title="تسجيل الدخول" subtitle="أدخل بياناتك للوصول إلى مشاريعك.">
+      <Seo
+        title="تسجيل الدخول"
+        description="سجّل الدخول إلى أريب للوصول إلى مشاريعك وجلسات اكتشاف المتطلبات ووثائق الـ PRD الخاصة بك."
+      />
       {!isSupabaseConfigured && <NotConfiguredNotice />}
       <form className="form" onSubmit={handleSubmit} style={{ marginTop: isSupabaseConfigured ? 0 : 'var(--space-4)' }}>
-        {error && <p className="form-error">{error}</p>}
+        {error && (
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+        )}
         <div className="field">
           <label htmlFor="email">البريد الإلكتروني</label>
           <input
@@ -73,7 +84,7 @@ export function Login() {
         </Link>
         <p className="text-secondary">
           ليس لديك حساب؟{' '}
-          <Link to="/register" style={{ color: 'var(--color-accent)', fontWeight: 500 }}>
+          <Link to="/register" style={{ color: 'var(--color-accent-text)', fontWeight: 500 }}>
             أنشئ حساباً
           </Link>
         </p>

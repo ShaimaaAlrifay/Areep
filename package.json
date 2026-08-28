@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
+    "brand": "node scripts/generate-brand-assets.mjs",
     "preview": "vite preview",
     "server": "node --env-file=server/.env server/index.js"
   },

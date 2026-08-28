@@ -7,16 +7,29 @@
 
    ---------- the three rules this file is built on ----------
 
-   1. RTL IS STRUCTURAL, NOT ALIGNMENT.
-      Every page, row, list and table declares `direction: "rtl"` and
-      lays its children out with `flexDirection: "row"` under that
-      direction — so the FIRST child sits on the RIGHT. The old build
-      used LTR containers with `row-reverse` to fake the same visual
-      order; that reverses the paint order but leaves padding, text
-      alignment and wrap behaviour on the Latin side, which is why
-      header cells and body cells drifted apart column by column.
-      Writing real RTL means a column's header and its cells derive
-      their edge from the same origin.
+   1. RTL IS STRUCTURAL — AND IN react-pdf IT IS TWO SEPARATE THINGS.
+      Verified against the installed renderer rather than assumed:
+      @react-pdf/layout's `setYogaValues` sets flexDirection, alignSelf,
+      padding{Top,Right,Bottom,Left} and so on, but it NEVER calls
+      `yogaNode.setDirection()`. The `direction` style is consumed in
+      exactly one place — the text engine, where it seeds bidi
+      resolution and the default `align`. Flex layout is therefore
+      always computed left-to-right, whatever `direction` says. Two
+      consequences this file is built around:
+
+        a) `direction: "rtl"` belongs on Page and Text nodes. That is
+           what makes a mixed Arabic/Latin sentence resolve correctly
+           and what right-aligns it by default.
+        b) VISUAL RTL ORDER comes from `flexDirection: "row-reverse"`
+           (first child renders rightmost) and `alignSelf: "flex-end"`
+           (right edge), never from `direction`.
+
+      For the same reason the flow-relative padding properties
+      (paddingStart / paddingEnd) are silently dropped — only the four
+      physical sides exist. Under `row-reverse` the reading-trailing
+      side of a cell is its PHYSICAL LEFT, so inter-column gutters here
+      are `paddingLeft`. Getting this wrong is what made the previous
+      build's header cells and body cells drift apart column by column.
 
    2. NO LETTER TRACKING ON ARABIC, EVER.
       letterSpacing on Arabic severs the cursive joins — the word
@@ -63,7 +76,7 @@ export const T = {
   sectionLede: { size: 9.75, weight: 400, leading: 1.75 },
   label: { size: 8.5, weight: 600, leading: 1.5 },
   body: { size: 10, weight: 400, leading: 1.9 },
-  quote: { size: 11.5, weight: 500, leading: 1.85 },
+  quote: { size: 11, weight: 500, leading: 1.7 },
   cell: { size: 9, weight: 400, leading: 1.75 },
   caption: { size: 7.5, weight: 400, leading: 1.6 },
 };
@@ -102,13 +115,14 @@ export const prdStyles = StyleSheet.create({
     top: 38,
     left: 56,
     right: 56,
-    direction: "rtl",
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  pageHeaderMark: { flexDirection: "row", alignItems: "center", gap: 6 },
-  pageHeaderLogo: { width: 11, height: 11 },
+  pageHeaderMark: { flexDirection: "row-reverse", alignItems: "center", gap: 6 },
+  /* 1265x1140 artwork — width derived from the real ratio so the mark
+     is not squashed into a square box. */
+  pageHeaderLogo: { width: 12.2, height: 11 },
   pageHeaderWordmark: {
     fontFamily: FONT.mark,
     fontWeight: 700,
@@ -130,15 +144,28 @@ export const prdStyles = StyleSheet.create({
     height: 0.75,
     backgroundColor: C.gray200,
   },
-  pageFooter: {
+  /* The footer is TWO independent fixed layers, not one row with two
+     children — see PageChrome in prdComponents.jsx for the quirk that
+     forces this. Both span the full measure and differ only in which
+     edge they align their single child to, so the note lands right and
+     the counter left without the two ever sharing a flex parent. */
+  pageFooterNoteLayer: {
     position: "absolute",
-    bottom: 34,
+    /* `top`, not `bottom`: a `bottom` offset does not position an
+       absolute Page child in this renderer and the footer rendered
+       nowhere at all. 794 sits ~40pt above the page edge, clear of the
+       content box, which ends at 841.89 - 64 = 777.89pt. */
+    top: 794,
     left: 56,
     right: 56,
-    direction: "rtl",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-end",
+  },
+  pageFooterCounterLayer: {
+    position: "absolute",
+    top: 794,
+    left: 56,
+    right: 56,
+    alignItems: "flex-start",
   },
   pageFooterNote: {
     fontFamily: FONT.arabic,
@@ -191,15 +218,20 @@ export const prdStyles = StyleSheet.create({
     color: C.gray600,
     textAlign: "right",
     marginTop: 8,
-    maxWidth: 340,
-    alignSelf: "flex-start",
+    /* 330, not the ~348 this column could hold: react-pdf breaks lines on a
+       measured width that can come out a couple of points under the finally
+       shaped width, so a right-aligned Arabic line was overhanging the type
+       area by ~2.3pt on the longest lede. The slack absorbs that, and a
+       shorter measure reads better in Arabic anyway. */
+    maxWidth: 330,
+    alignSelf: "flex-end",
   },
   headingRule: {
     height: 1,
     width: 44,
     backgroundColor: C.black,
     marginTop: 18,
-    alignSelf: "flex-start",
+    alignSelf: "flex-end",
   },
 
   /* ---------- labels ----------
@@ -263,14 +295,14 @@ export const prdStyles = StyleSheet.create({
   },
 
   /* ---------- tables ----------
-     Real RTL: the row is `direction: rtl` + `flexDirection: row`, so
-     the first declared column renders rightmost and every cell shares
-     the header's edge. Padding is expressed with paddingStart /
-     paddingEnd (flow-relative) rather than left/right, so the gutter
-     always falls on the reading-trailing side. */
+     Real RTL: the row is `row-reverse`, so the first declared column
+     renders rightmost and every cell shares
+     the header's edge. The inter-column gutter is a physical
+     paddingLeft applied per cell: under row-reverse the left side IS
+     the reading-trailing side, and the flow-relative properties do not
+     exist in this renderer (see rule 1). */
   tableHeaderRow: {
-    direction: "rtl",
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     backgroundColor: C.black,
     paddingVertical: 9,
     paddingHorizontal: 12,
@@ -284,8 +316,7 @@ export const prdStyles = StyleSheet.create({
     textAlign: "right",
   },
   tableRow: {
-    direction: "rtl",
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     paddingVertical: 11,
     paddingHorizontal: 12,
     borderBottomWidth: 0.75,
@@ -322,7 +353,7 @@ export const prdStyles = StyleSheet.create({
 
   /* ---------- priority pill ---------- */
   pill: {
-    alignSelf: "flex-start",
+    alignSelf: "flex-end",
     borderWidth: 0.75,
     borderColor: C.gray300,
     borderStyle: "solid",
@@ -345,9 +376,8 @@ export const prdStyles = StyleSheet.create({
      Marker first (= rightmost under RTL), prose second, both inside a
      `direction: rtl` row so the marker gutter is on the reading side. */
   listRow: {
-    direction: "rtl",
-    flexDirection: "row",
-    marginBottom: 10,
+    flexDirection: "row-reverse",
+    marginBottom: 6,
     alignItems: "flex-start",
   },
   listMarkerNum: {
@@ -358,7 +388,7 @@ export const prdStyles = StyleSheet.create({
     color: C.gray400,
     width: 22,
     textAlign: "right",
-    paddingEnd: 8,
+    paddingLeft: 8,
   },
   listMarkerDash: {
     fontFamily: FONT.arabic,
@@ -367,11 +397,20 @@ export const prdStyles = StyleSheet.create({
     color: C.gray400,
     width: 14,
     textAlign: "right",
-    paddingEnd: 6,
+    paddingLeft: 6,
   },
   listText: { flex: 1 },
 
   /* ---------- two-column band ---------- */
-  twoCol: { direction: "rtl", flexDirection: "row", gap: 30 },
+  /* Known residual: when a trailing parenthetical identifier — "(FR-004)."
+     — lands exactly at a line end, react-pdf can break between the neutral
+     "(" and the LTR run, leaving the paren stranded on the previous line.
+     It is a break-opportunity artifact of the engine's bidi run splitting,
+     not a width problem (verified: widening the columns does not move it),
+     and the font ships no zero-width joiner (U+2060/U+200D are absent) to
+     bind the token. The available fix — wrapping such identifiers in their
+     own nested Text span — is exactly the construct whose removal fixed the
+     paragraph-level scrambling, so it is deliberately not applied here. */
+  twoCol: { flexDirection: "row-reverse", gap: 30 },
   col: { flex: 1 },
 });
