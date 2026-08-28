@@ -27,6 +27,29 @@
   VITE_CONTACT_EMAIL = "areep.sa@gmail.com"
   NODE_VERSION = "22"
 
+  # Netlify's secret scanner fails a build when the value of any declared
+  # environment variable appears in the repo or the build output. For a
+  # Vite app that rule is inverted for anything VITE_-prefixed: Vite
+  # *inlines* those into the browser bundle by definition, so their values
+  # are always in the build output, and they are only ever set to things
+  # that are public on purpose.
+  #
+  #   VITE_SITE_URL        the site's own public address — it is also, and
+  #                        legitimately, a literal in the Edge Functions'
+  #                        CORS allowlist (_shared/cors.ts), which is what
+  #                        the scanner flagged
+  #   VITE_CONTACT_EMAIL   printed on the privacy and terms pages
+  #   VITE_SUPABASE_URL    the project's public API host
+  #   VITE_SUPABASE_ANON_KEY  publishable by design; the security boundary
+  #                        is RLS plus the signed-in-user check in
+  #                        supabase/functions/_shared/auth.ts
+  #
+  # Listing them here says "these are not secrets", which is true. Nothing
+  # that IS a secret belongs in a VITE_ variable in the first place — the
+  # Gemini and Groq keys live in Supabase Secrets and are never built into
+  # this bundle at all.
+  SECRETS_SCAN_OMIT_KEYS = "VITE_SITE_URL,VITE_CONTACT_EMAIL,VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY"
+
 # The SPA fallback also lives in public/_redirects. That duplication is
 # intentional: _redirects is emitted into dist/ and therefore survives a
 # manual drag-and-drop deploy, where this file — which lives at the repo
