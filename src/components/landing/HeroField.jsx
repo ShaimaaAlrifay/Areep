@@ -229,7 +229,12 @@ export function HeroField() {
         particles[i].sx = seats[i].sx
         particles[i].sy = seats[i].sy
       }
-      if (reduced) draw(0)
+      /* Repaint for every layout that does NOT run a loop — reduced motion
+         and the stacked mobile hero both paint a single frame, so without
+         this they keep whatever the fallback circles produced and never
+         show the real silhouette. The running loop picks the new seats up
+         on its next frame by itself. */
+      if (isStatic()) draw(0)
     })
 
     let width = 0
@@ -242,8 +247,38 @@ export function HeroField() {
     const pointer = { x: 0.5, y: 0.42, toX: 0.5, toY: 0.42, power: 0, toPower: 0 }
     let order = reduced ? 1 : 0
     let scrollOrder = 0
+    /* Stacked layouts assemble once, on entry, instead of being scrolled.
+       Latched so scrolling back up never scatters a mark the visitor has
+       already watched come together. */
+    let entered = false
+    /* Whether the pinned layout is actually in force. Read from the CSS
+       rather than inferred, because the two are decided in different
+       places and only the CSS knows: landing.css unpins the hero below
+       760px wide OR 560px tall, and no amount of measuring here
+       reproduces that rule reliably. */
+    let pinnedLayout = false
     let frame = 0
     let visible = true
+
+    const heroEl = wrap.closest('.lp-hero')
+    const readLayout = () => {
+      pinnedLayout = heroEl ? getComputedStyle(heroEl).position === 'sticky' : false
+      if (!pinnedLayout) {
+        /* Stacked layouts show the mark already assembled, from the first
+           painted frame — no easing in.
+
+           It used to animate together on entry, which read well standing
+           still and badly in practice: the field is a short block near the
+           top of a phone screen, so anyone who started scrolling
+           immediately watched it leave before it had formed. Assembling is
+           the story the pinned desktop layout tells over its own scroll;
+           on a phone there is no such journey, so the mark is simply the
+           finished picture above the headline. */
+        entered = true
+        scrollOrder = 1
+        order = 1
+      }
+    }
 
     const resize = () => {
       const rect = wrap.getBoundingClientRect()
@@ -392,6 +427,24 @@ export function HeroField() {
       frame = requestAnimationFrame(tick)
     }
 
+    /* The loop exists to animate assembly and the pointer. A stacked
+       layout has neither — the mark is resolved and there is no pointer on
+       a phone — so it gets the same single painted frame that reduced
+       motion gets, and never starts a rAF that would redraw an identical
+       image sixty times a second on a battery. */
+    const isStatic = () => reduced || !pinnedLayout
+
+    const startLoop = () => {
+      if (frame || isStatic()) return
+      frame = requestAnimationFrame(tick)
+    }
+    const stopLoop = () => {
+      if (frame) {
+        cancelAnimationFrame(frame)
+        frame = 0
+      }
+    }
+
     const onScroll = () => {
       const rect = wrap.getBoundingClientRect()
 
@@ -402,28 +455,39 @@ export function HeroField() {
       const trackRect = track ? track.getBoundingClientRect() : rect
       const travel = trackRect.height - window.innerHeight
 
-      if (travel > 0) {
+      const nowVisible = rect.bottom > 0 && rect.top < window.innerHeight
+      if (nowVisible) entered = true
+
+      if (pinnedLayout && travel > 0) {
         const through = Math.min(1, Math.max(0, -trackRect.top / travel))
         /* Finish assembling within the first ASSEMBLE_BY of the travel and
            hold the resolved mark for what remains, so the visitor sees the
            completed shape before the pin lets go. */
         scrollOrder = Math.min(1, through / ASSEMBLE_BY)
       } else {
-        /* No travel: the pin is off (phone, or reduced motion), so fall
-           back to the hero's own scroll. The divisor is smaller than the
-           old 0.55 on purpose — unpinned, the hero leaves quickly, and the
-           field has to be finished while it is still on screen. */
-        scrollOrder = Math.min(1, Math.max(0, -rect.top / (rect.height * 0.3)))
+        /* Stacked layout, so
+           the field is a picture above the headline rather than a journey
+           through it. Driving it from scroll here does not work — it is a
+           short block near the top of the page, so it would have to leave
+           the screen before it finished, and the visitor would only ever
+           see the scattered state.
+
+           Note this branch is chosen from `pinnedLayout`, not from
+           `travel > 0`. On a 320px screen the stacked hero can end up a
+           few dozen pixels taller than the viewport, which produced a
+           tiny positive travel that the old test mistook for the pin
+           track — and the mark never assembled on the narrowest phones.
+
+           So it assembles itself the moment it is on screen. `order` is
+           eased toward this target in tick(), which turns the switch into
+           roughly a second of settling rather than a jump. */
+        scrollOrder = entered ? 1 : 0
       }
 
-      const nowVisible = rect.bottom > 0 && rect.top < window.innerHeight
       if (nowVisible !== visible) {
         visible = nowVisible
-        if (visible && !frame && !reduced) frame = requestAnimationFrame(tick)
-        if (!visible && frame) {
-          cancelAnimationFrame(frame)
-          frame = 0
-        }
+        if (visible) startLoop()
+        else stopLoop()
       }
     }
 
@@ -437,31 +501,36 @@ export function HeroField() {
       pointer.toPower = 0
     }
     const onVisibility = () => {
-      if (document.hidden && frame) {
-        cancelAnimationFrame(frame)
-        frame = 0
-      } else if (!document.hidden && visible && !frame && !reduced) {
-        frame = requestAnimationFrame(tick)
-      }
+      if (document.hidden) stopLoop()
+      else if (visible) startLoop()
     }
 
+    readLayout()
     resize()
     onScroll()
 
-    if (reduced) {
-      // One painted frame of the resolved structure. The idea is delivered,
-      // nothing moves, and no loop is ever started.
-      order = 1
+    if (isStatic()) {
       draw(0)
     } else {
-      frame = requestAnimationFrame(tick)
+      startLoop()
+    }
+    if (!reduced) {
       wrap.addEventListener('pointermove', onPointerMove)
       wrap.addEventListener('pointerleave', onPointerLeave)
     }
 
     const observer = new ResizeObserver(() => {
+      const wasStatic = isStatic()
+      readLayout()
       resize()
-      if (reduced) draw(0)
+      // Rotating a tablet can move it between the two layouts, so the loop
+      // is started or stopped to match rather than assumed to be right.
+      if (isStatic()) {
+        stopLoop()
+        draw(0)
+      } else if (wasStatic) {
+        startLoop()
+      }
     })
     observer.observe(wrap)
     window.addEventListener('scroll', onScroll, { passive: true })
