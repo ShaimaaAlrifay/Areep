@@ -51,50 +51,58 @@ export function Landing() {
       <LandingNav />
 
       <main id="main">
-        <section className="lp-hero" aria-labelledby="hero-heading">
-          <HeroField />
+        {/* The tall track the hero's assembly is paced across. The section
+            inside is sticky, so the viewport is held while the field
+            resolves from فوضى into بنية — the same device the narrative
+            below uses. Without it the shape only finished assembling once
+            the hero had already scrolled halfway off screen, which meant
+            the page's central image completed for nobody. */}
+        <div className="lp-hero-scroll">
+          <section className="lp-hero" aria-labelledby="hero-heading">
+            <HeroField />
 
-          <div className="lp-shell lp-hero-inner">
-            <p className="lp-hero-kicker">
-              <span className="lp-dot" aria-hidden="true" />
-              ذكاء المتطلبات — بالعربية
-            </p>
+            <div className="lp-shell lp-hero-inner">
+              <p className="lp-hero-kicker">
+                <span className="lp-dot" aria-hidden="true" />
+                ذكاء المتطلبات — بالعربية
+              </p>
 
-            <h1 id="hero-heading" className="lp-hero-title">
-              <span className="lp-line">من فكرة مبعثرة</span>
-              <span className="lp-line lp-line-dim">إلى منتج واضح.</span>
-            </h1>
+              <h1 id="hero-heading" className="lp-hero-title">
+                <span className="lp-line">من فكرة مبعثرة</span>
+                <span className="lp-line lp-line-dim">إلى منتج واضح.</span>
+              </h1>
 
-            <p className="lp-hero-lede">
-              احكِ لأريب عن مشروعك كما تتكلّم مع عميلك. يسأل عمّا نقص، يرصد التناقض، ويخرج بوثيقة متطلبات
-              يقدر فريقك يبني عليها — لا ملخّص محادثة.
-            </p>
+              <p className="lp-hero-lede">
+                احكِ لأريب عن مشروعك كما تتكلّم مع عميلك. يسأل عمّا نقص، يرصد التناقض، ويخرج بوثيقة متطلبات
+                يقدر فريقك يبني عليها — لا ملخّص محادثة.
+              </p>
 
-            <div className="lp-hero-actions">
-              <Link
-                to={primary.to}
-                className="lp-btn lp-btn-primary"
-                onClick={() => track(EVENTS.CTA_CLICK, { location: 'hero', action: user ? 'workspace' : 'register' })}
-              >
-                {primary.label}
-              </Link>
-              <a href="#story" className="lp-btn lp-btn-ghost">
-                اكتشف كيف يعمل
-                <span className="lp-btn-arrow" aria-hidden="true">
-                  ↓
-                </span>
-              </a>
+              <div className="lp-hero-actions">
+                <Link
+                  to={primary.to}
+                  className="lp-btn lp-btn-primary"
+                  onClick={() => track(EVENTS.CTA_CLICK, { location: 'hero', action: user ? 'workspace' : 'register' })}
+                >
+                  {primary.label}
+                </Link>
+                <a href="#story" className="lp-btn lp-btn-ghost">
+                  اكتشف كيف يعمل
+                  <span className="lp-btn-arrow" aria-hidden="true">
+                    ↓
+                  </span>
+                </a>
+              </div>
+
+              {!user && <p className="lp-hero-note">مجاني حاليًا · بدون بطاقة دفع</p>}
             </div>
 
-            {!user && <p className="lp-hero-note">مجاني حاليًا · بدون بطاقة دفع</p>}
-          </div>
-
-          <div className="lp-hero-rail" aria-hidden="true">
-            <span className="lp-num">فوضى</span>
-            <span className="lp-rail-line" />
-            <span className="lp-num">بنية</span>
-          </div>
-        </section>
+            <div className="lp-hero-rail" aria-hidden="true">
+              <span className="lp-num">فوضى</span>
+              <span className="lp-rail-line" />
+              <span className="lp-num">بنية</span>
+            </div>
+          </section>
+        </div>
 
         <div id="story">
           <Narrative />

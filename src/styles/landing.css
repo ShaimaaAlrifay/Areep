@@ -248,9 +248,30 @@
 /* ---------------------------------------------------------- */
 /* Hero                                                        */
 /* ---------------------------------------------------------- */
-.lp-hero {
+/* The scroll budget the field's assembly is paced across — the same
+   tall-track + sticky-child device as .lp-story below.
+
+   The problem it solves: the field resolved as a function of how far the
+   hero had scrolled past the top, so it only reached its finished state
+   once the hero was already more than half gone. The page's central
+   image completed off screen, for nobody. Holding the viewport means the
+   visitor watches فوضى become بنية, and only then moves on.
+
+   200vh gives exactly one viewport of travel to spend. See HeroField.jsx,
+   which resolves the field over the first 60% of it and holds the
+   finished mark for the remaining 40% before the pin releases — arriving
+   at the next section mid-assembly would defeat the point. */
+.lp-hero-scroll {
   position: relative;
-  min-height: min(100svh, 900px);
+  height: 200vh;
+}
+
+.lp-hero {
+  position: sticky;
+  top: 0;
+  /* An exact viewport height, not a min: a sticky box taller than the
+     viewport scrolls its own overflow instead of pinning. */
+  height: 100svh;
   display: flex;
   align-items: center;
   padding-block: clamp(140px, 18vh, 200px) clamp(80px, 12vh, 140px);
@@ -1123,7 +1144,16 @@
   .lp-nav-links {
     display: none; /* the page is one scroll; the CTA is the only nav that matters */
   }
+  /* No pin on a phone, for the reason the narrative gives below: a tall
+     sticky section on a small screen is a scroll trap. The field still
+     resolves, just against the hero's own travel (HeroField.jsx falls
+     back to that whenever the track has no travel to measure). */
+  .lp-hero-scroll {
+    height: auto;
+  }
   .lp-hero {
+    position: static;
+    height: auto;
     min-height: auto;
     padding-block: 124px 40px;
   }
@@ -1187,6 +1217,18 @@
 /* Reduced motion                                              */
 /* ---------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
+  /* HeroField paints the resolved mark in a single frame here, with no
+     loop at all — so there is nothing for a pin to hold the viewport
+     for, and 200vh of empty scrolling would be pure obstruction. */
+  .lp-hero-scroll {
+    height: auto;
+  }
+  .lp-hero {
+    position: static;
+    height: auto;
+    min-height: min(100svh, 900px);
+  }
+
   .lp *,
   .lp *::before,
   .lp *::after {

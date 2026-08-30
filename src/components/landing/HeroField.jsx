@@ -14,8 +14,13 @@ import { useReducedMotion } from '../../hooks/useReducedMotion'
    Every particle owns two positions — where it drifts when idle, and the
    seat it belongs to on the mark's silhouette. A single `order` value
    moves the whole field between them, and that value rises as the visitor
-   scrolls the hero and as the pointer approaches. Reading the page is
-   what resolves the picture.
+   scrolls and as the pointer approaches. Reading the page is what
+   resolves the picture.
+
+   The hero is pinned while that happens (.lp-hero-scroll in landing.css).
+   It used to resolve against how far the hero had scrolled *past* the
+   top, which meant the mark only finished assembling once the hero was
+   already leaving — the payoff played to an empty screen.
 
    Implementation notes, all of them deliberate:
    - Canvas, not DOM: a few hundred nodes animating transform every frame
@@ -43,6 +48,18 @@ const LOBES = [
   { x: 0.72, y: 0.68, r: 0.12 }, // lower right wing
   { x: 0.5, y: 0.2, r: 0.055 },  // the sparkle
 ]
+
+/* Fraction of the pinned travel spent assembling. The rest is a hold on
+   the finished mark — releasing the pin the instant the last particle
+   seats would flick the page onward before anyone registered the shape.
+
+   Measured rather than guessed: `order` eases toward its target and the
+   seating curve is easeOut, so the field *looks* finished noticeably
+   before this value is reached. At 0.6 it read as complete only 40% of
+   the way in, leaving most of the pin as dead scroll. 0.8 paces the
+   assembly across more of the travel and leaves a hold that registers
+   without overstaying. */
+const ASSEMBLE_BY = 0.8
 
 const COUNT = 260
 const IDLE_ALPHA = 0.5
@@ -99,6 +116,9 @@ export function HeroField() {
     if (!canvas || !wrap) return undefined
 
     const context = canvas.getContext('2d')
+    /* The tall sticky track from landing.css. Absent only if the hero is
+       ever rendered outside it, which the fallback in onScroll covers. */
+    const track = wrap.closest('.lp-hero-scroll')
     const particles = buildParticles(seeded(20260829))
 
     let width = 0
@@ -208,8 +228,28 @@ export function HeroField() {
 
     const onScroll = () => {
       const rect = wrap.getBoundingClientRect()
-      const seen = Math.min(1, Math.max(0, -rect.top / (rect.height * 0.55)))
-      scrollOrder = seen
+
+      /* Progress has to be read from the TRACK, not from this element.
+         The hero is sticky now, so while it is pinned its own rect sits
+         still at the top of the viewport and would report no progress at
+         all. The track is the tall parent that actually scrolls. */
+      const trackRect = track ? track.getBoundingClientRect() : rect
+      const travel = trackRect.height - window.innerHeight
+
+      if (travel > 0) {
+        const through = Math.min(1, Math.max(0, -trackRect.top / travel))
+        /* Finish assembling within the first ASSEMBLE_BY of the travel and
+           hold the resolved mark for what remains, so the visitor sees the
+           completed shape before the pin lets go. */
+        scrollOrder = Math.min(1, through / ASSEMBLE_BY)
+      } else {
+        /* No travel: the pin is off (phone, or reduced motion), so fall
+           back to the hero's own scroll. The divisor is smaller than the
+           old 0.55 on purpose — unpinned, the hero leaves quickly, and the
+           field has to be finished while it is still on screen. */
+        scrollOrder = Math.min(1, Math.max(0, -rect.top / (rect.height * 0.3)))
+      }
+
       const nowVisible = rect.bottom > 0 && rect.top < window.innerHeight
       if (nowVisible !== visible) {
         visible = nowVisible
