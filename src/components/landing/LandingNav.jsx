@@ -16,9 +16,9 @@ import { EVENTS, track } from '../../lib/analytics'
    ============================================================ */
 
 const LINKS = [
-  { href: '#story', label: 'كيف يعمل' },
+  { href: '#story', label: 'كيف يشتغل' },
   { href: '#capabilities', label: 'المزايا' },
-  { href: '#demo', label: 'تجربة أريب' },
+  { href: '#demo', label: 'جرّبه' },
 ]
 
 export function LandingNav() {

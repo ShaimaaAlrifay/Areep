@@ -94,12 +94,16 @@ console.log(`og-image.png written (${(readFileSync(out).length / 1024).toFixed(0
    "Add to Home Screen" and falls back to a screenshot, and a few contexts
    still want a raster icon. Apple composites its icon onto an opaque
    background, so these are rendered on the brand's own near-black rather
-   than shipped transparent and getting an arbitrary one. */
+   than shipped transparent and getting an arbitrary one.
+
+   0.88 matches the fill in public/favicon.svg, and is set by the smallest
+   size rather than the largest: at 0.58 the 32px tab icon lost the mark
+   to padding. See that file's comment. */
 const icon = (size) => `<!doctype html><html><head><style>
   * { margin:0; padding:0 }
   body { width:${size}px; height:${size}px; background:#0a0a0b; display:flex;
          align-items:center; justify-content:center }
-  img { width:${Math.round(size * 0.58)}px; height:auto; display:block }
+  img { width:${Math.round(size * 0.88)}px; height:auto; display:block }
 </style></head><body><img src="${mark}" alt=""></body></html>`
 
 for (const [size, name] of [[180, 'apple-touch-icon.png'], [32, 'favicon-32.png']]) {

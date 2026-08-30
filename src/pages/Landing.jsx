@@ -64,7 +64,7 @@ export function Landing() {
             <div className="lp-shell lp-hero-inner">
               <p className="lp-hero-kicker">
                 <span className="lp-dot" aria-hidden="true" />
-                ذكاء المتطلبات — بالعربية
+                ذكاء المتطلبات — بالعربي
               </p>
 
               <h1 id="hero-heading" className="lp-hero-title">
@@ -73,8 +73,8 @@ export function Landing() {
               </h1>
 
               <p className="lp-hero-lede">
-                احكِ لأريب عن مشروعك كما تتكلّم مع عميلك. يسأل عمّا نقص، يرصد التناقض، ويخرج بوثيقة متطلبات
-                يقدر فريقك يبني عليها — لا ملخّص محادثة.
+                قل لأريب عن مشروعك زي ما هو. حتى لو الكلام ملخبط، وحتى لو لسه ما عرفت وش الناقص. يسألك عن
+                المهم، يرتّب كلامك، ويطلّع لك متطلبات واضحة يقدر فريقك يبني عليها.
               </p>
 
               <div className="lp-hero-actions">
@@ -86,14 +86,14 @@ export function Landing() {
                   {primary.label}
                 </Link>
                 <a href="#story" className="lp-btn lp-btn-ghost">
-                  اكتشف كيف يعمل
+                  شوف كيف يشتغل
                   <span className="lp-btn-arrow" aria-hidden="true">
                     ↓
                   </span>
                 </a>
               </div>
 
-              {!user && <p className="lp-hero-note">مجاني حاليًا · بدون بطاقة دفع</p>}
+              {!user && <p className="lp-hero-note">مجاني حاليًا · ولا يحتاج بطاقة</p>}
             </div>
 
             <div className="lp-hero-rail" aria-hidden="true">
@@ -115,10 +115,10 @@ export function Landing() {
         <section className="lp-faq" id="faq" aria-labelledby="faq-heading">
           <div className="lp-shell lp-faq-grid">
             <div>
-              <p className="lp-eyebrow">قبل أن تبدأ</p>
+              <p className="lp-eyebrow">قبل ما تبدأ</p>
               <h2 id="faq-heading" className="lp-h2">
-                الأسئلة التي
-                <span className="lp-h2-dim"> تُسأل عادة.</span>
+                أسئلة
+                <span className="lp-h2-dim"> تجي عادة.</span>
               </h2>
               <p className="lp-faq-more">
                 <Link to="/faq">بقية الأسئلة ←</Link>

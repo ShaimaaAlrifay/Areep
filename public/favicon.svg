@@ -2,12 +2,18 @@
   <!-- The mark is white, so it ships on the brand's own near-black rather
        than transparent. A transparent white mark is invisible against light
        browser chrome, and a favicon is the one surface whose background we
-       do not control — so the tile carries it. Same treatment, same scale
-       (58%) and same background as the two raster icons that
-       scripts/generate-brand-assets.mjs produces, so all three icons are
-       the same picture. -->
+       do not control — so the tile carries it.
+
+       The mark fills 88% of the tile. It used to fill 58%, which looked
+       balanced at the 512px this file is authored at and was illegible at
+       the 16px a browser tab actually renders: roughly 9px of artwork
+       inside 7px of padding, which reads as a grey smudge rather than a
+       logo. A favicon is designed at its smallest size or not at all.
+
+       scripts/generate-brand-assets.mjs uses the same 88% for the two
+       raster icons, so all three remain the same picture. -->
   <rect width="512" height="512" fill="#0a0a0b"/>
-  <g transform="translate(107.52 123.86) scale(0.93384)">
+  <g transform="translate(30.72 55.75) scale(1.41667)">
     <path d="M195.985 274.56C172.835 285.86 144.975 285.42 122.455 274.92C109.155 268.71 103.715 256.79 106.545 242.98C111.755 217.58 141.985 183.76 159.845 183.76C178.715 183.76 206.995 218.16 211.625 244.35C213.875 257.06 208.905 268.25 195.985 274.56Z" fill="white"/>
     <path d="M150.293 133.95C97.7431 127.93 48.9431 135.98 0.0731084 155.2C-0.756892 135.89 5.5331 117.25 16.2531 101.52C29.5731 81.97 51.9631 74.09 75.3631 78.92C106.443 85.33 134.403 104.98 150.293 133.96V133.95Z" fill="white"/>
     <path d="M317.633 155.28C268.533 135.26 219.193 128.64 167.833 133.52C184.293 105.05 210.433 85.8102 240.683 79.2502C263.943 73.8902 286.313 81.2801 300.043 100.73C311.233 116.58 317.603 135.65 317.623 155.28H317.633Z" fill="white"/>
