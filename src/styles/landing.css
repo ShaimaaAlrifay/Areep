@@ -27,7 +27,7 @@
   /* A serif display carries more visual weight at the same size than the
      sans did, so the top of the scale comes down a little — 104px in this
      face read heavier than the 104px it replaced. */
-  --lp-h1: clamp(38px, 7.6vw, 94px);
+  --lp-h1: clamp(36px, 6vw, 76px);
   /* Display leading is looser than it was for the sans: this serif has
      taller ascenders and deeper descenders, and at 1.14 the tail of one
      line was running into the head of the next. */
@@ -290,8 +290,8 @@
   z-index: -1;
   /* The field fades at the edges so it reads as depth behind the type
      rather than as a rectangle sitting on the page. */
-  mask-image: radial-gradient(ellipse 58% 72% at 30% 46%, #000 42%, transparent 88%);
-  -webkit-mask-image: radial-gradient(ellipse 58% 72% at 30% 46%, #000 42%, transparent 88%);
+  mask-image: radial-gradient(ellipse 52% 70% at 28% 46%, #000 40%, transparent 86%);
+  -webkit-mask-image: radial-gradient(ellipse 52% 70% at 28% 46%, #000 40%, transparent 86%);
 }
 .lp-field-canvas {
   display: block;
@@ -301,6 +301,24 @@
 
 .lp-hero-inner {
   position: relative;
+}
+
+/* The copy is a fixed-width column hugging the shell's leading (right)
+   edge, and the field seats its mark in whatever space is left to the
+   left of it — see seatToPixels in HeroField.jsx, which derives that zone
+   from these same numbers.
+
+   A px width, not a percentage: percentage padding and widths resolve
+   against the *containing block*, which here is the full-bleed hero
+   section rather than the capped shell. A first attempt used
+   `padding-inline-end: 46%` and, on a 2940px screen, reserved 46% of 2940
+   instead of 46% of 1240 — collapsing the copy to one word per line. */
+.lp-hero-copy {
+  /* The percentage resolves against .lp-hero-inner's content box — the
+     shell — which is the same figure seatToPixels uses to place the mark.
+     They have to agree: the gap between artwork and copy is the
+     difference between these two numbers. */
+  max-width: min(640px, 55%);
 }
 
 .lp-hero-kicker {
@@ -325,7 +343,6 @@
   font-weight: 700;
   line-height: 1.26;
   letter-spacing: 0;
-  max-width: 15ch;
 }
 .lp-line {
   display: block;

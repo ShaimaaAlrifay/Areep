@@ -257,17 +257,59 @@ export function HeroField() {
       context.setTransform(dpr, 0, 0, dpr, 0, 0)
     }
 
-    /* The mark is square, so it is fitted rather than stretched. It is
-       also seated in the LEFT half on wide viewports, not centred: the
-       hero's copy hangs off the right margin (this is an RTL page), and a
-       centred mark resolved straight through the headline and lede. Copy
-       on the reading side, image on the empty side — and the two stop
-       competing. Below the breakpoint the column is single, so it recentres
-       and sits behind the type as texture instead. */
+    /* The mark is square, so it is fitted rather than stretched — and on a
+       wide viewport it is seated inside the SAME grid the copy uses, not at
+       a fraction of the raw viewport.
+
+       That distinction is the whole point. The copy lives in .lp-shell,
+       which is capped at --lp-max and centred; the mark used to be placed
+       at 30% of the full window width. On a normal screen those two happen
+       to sit apart, but past roughly 1900px the shell stops growing while
+       the window keeps going, so the mark drifts right, straight underneath
+       the headline. Measuring both from the shell's own box means they can
+       never converge, at any width.
+
+       The mark takes the leading (left, in RTL) 46% of that box and the
+       copy is padded off the same 46% in CSS, so the two occupy opposite
+       halves of one column by construction rather than by luck. */
     const seatToPixels = (p) => {
       const wide = width > 900
-      const size = Math.min(width, height) * (wide ? 0.72 : 0.86)
-      const ox = wide ? width * 0.3 - size / 2 : (width - size) / 2
+
+      if (!wide) {
+        // Single column: the mark recentres and sits behind the type as
+        // texture rather than beside it.
+        const size = Math.min(width, height) * 0.86
+        return { x: (width - size) / 2 + p.sx * size, y: (height - size) / 2 + p.sy * size }
+      }
+
+      /* Mirrors the CSS exactly: .lp-shell is max-width --lp-max (1240)
+         with clamp(20, 5vw, 64) gutters, and .lp-hero-copy is
+         min(640px, 55%) of that shell's content, hugging its leading
+         (right) edge. The mark is centred in what remains to the left of
+         it — INSIDE the shell, not in the open space beyond it.
+
+         Both halves of that matter. Deriving the zone from the shell is
+         what stopped the mark drifting under the headline on a wide
+         screen, where the shell stops growing but the window does not.
+         Keeping it inside the shell is what stops the composition going
+         left-heavy at 2940px, with the artwork running to the window edge
+         while the copy stayed in a centred column — the whole page is
+         built on this grid, and the hero is not the place to leave it. */
+      const gutter = Math.min(64, Math.max(20, width * 0.05))
+      const shellWidth = Math.min(1240, width - gutter * 2)
+      const shellLeft = (width - shellWidth) / 2
+      const contentLeft = shellLeft + gutter
+      const contentWidth = shellWidth - gutter * 2
+
+      const copyWidth = Math.min(640, contentWidth * 0.55)
+      const copyLeft = contentLeft + contentWidth - copyWidth
+
+      const zoneLeft = contentLeft
+      const zoneRight = copyLeft - 48 // a breathing gap the mark never crosses
+      const zoneWidth = Math.max(120, zoneRight - zoneLeft)
+
+      const size = Math.min(zoneWidth, height * 0.68)
+      const ox = zoneLeft + (zoneWidth - size) / 2
       const oy = (height - size) / 2
       return { x: ox + p.sx * size, y: oy + p.sy * size }
     }

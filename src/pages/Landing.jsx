@@ -63,33 +63,35 @@ export function Landing() {
             <HeroField />
 
             <div className="lp-shell lp-hero-inner">
-              <h1 id="hero-heading" className="lp-hero-title">
-                <span className="lp-line">من فكرة مبعثرة</span>
-                <span className="lp-line lp-line-dim">إلى منتج {kashida('واضح')}.</span>
-              </h1>
+              <div className="lp-hero-copy">
+                <h1 id="hero-heading" className="lp-hero-title">
+                  <span className="lp-line">من فكرة مبعثرة</span>
+                  <span className="lp-line lp-line-dim">إلى منتج {kashida('واضح')}.</span>
+                </h1>
 
-              <p className="lp-hero-lede">
-                قل لأريب عن مشروعك زي ما هو. حتى لو الكلام ملخبط، وحتى لو لسه ما عرفت وش الناقص. يسألك عن
-                المهم، يرتّب كلامك، ويطلّع لك متطلبات واضحة يقدر فريقك يبني عليها.
-              </p>
+                <p className="lp-hero-lede">
+                  قل لأريب عن مشروعك زي ما هو. حتى لو الكلام ملخبط، وحتى لو لسه ما عرفت وش الناقص. يسألك عن
+                  المهم، يرتّب كلامك، ويطلّع لك متطلبات واضحة يقدر فريقك يبني عليها.
+                </p>
 
-              <div className="lp-hero-actions">
-                <Link
-                  to={primary.to}
-                  className="lp-btn lp-btn-primary"
-                  onClick={() => track(EVENTS.CTA_CLICK, { location: 'hero', action: user ? 'workspace' : 'register' })}
-                >
-                  {primary.label}
-                </Link>
-                <a href="#story" className="lp-btn lp-btn-ghost">
-                  شوف كيف يشتغل
-                  <span className="lp-btn-arrow" aria-hidden="true">
-                    ↓
-                  </span>
-                </a>
+                <div className="lp-hero-actions">
+                  <Link
+                    to={primary.to}
+                    className="lp-btn lp-btn-primary"
+                    onClick={() => track(EVENTS.CTA_CLICK, { location: 'hero', action: user ? 'workspace' : 'register' })}
+                  >
+                    {primary.label}
+                  </Link>
+                  <a href="#story" className="lp-btn lp-btn-ghost">
+                    شوف كيف يشتغل
+                    <span className="lp-btn-arrow" aria-hidden="true">
+                      ↓
+                    </span>
+                  </a>
+                </div>
+
+                {!user && <p className="lp-hero-note">مجاني حاليًا · ولا يحتاج بطاقة</p>}
               </div>
-
-              {!user && <p className="lp-hero-note">مجاني حاليًا · ولا يحتاج بطاقة</p>}
             </div>
 
             {/* Sits in the page grid rather than being pinned to the raw
