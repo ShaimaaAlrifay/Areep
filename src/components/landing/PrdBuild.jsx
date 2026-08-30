@@ -71,18 +71,19 @@ export function PrdBuild() {
             <span className="lp-h2-dim"> لا ملخّص يُنسخ.</span>
           </h2>
           <p className="lp-lede">
-            ثماني صفحات بقالب أريب: غلاف وسبعة أقسام مرقّمة، بنص عربي حقيقي قابل للتحديد والبحث — لا صورة
-            ممسوحة. تُصدَّر PDF أو Markdown من نفس البيانات.
+            مو مجرد كلام مرتّب وخلاص. أريب ياخذ اللي طلع من الجلسة ويحوّله إلى PRD تقدر تراجعه وتعدّله
+            وتسلّمه لفريقك. ثمان صفحات بقالب أريب، بنص عربي حقيقي تقدر تحدّده وتبحث داخله — مو صورة داخل
+            الملف.
           </p>
           <ul className="lp-prd-facts">
             <li>
-              <span className="lp-num">٨</span> صفحات، RTL من التصميم لا من المحاذاة
+              <span className="lp-num">٨</span> صفحات، RTL من أساس التصميم مو محاذاة وخلاص
             </li>
             <li>
-              <span className="lp-num">٧</span> أنواع متطلبات بمعرّفات ثابتة
+              <span className="lp-num">٧</span> أنواع متطلبات، كل واحد له معرّف ثابت
             </li>
             <li>
-              <span className="lp-num">PDF · MD</span> من نفس المصدر، بلا إعادة توليد
+              <span className="lp-num">PDF · MD</span> من نفس المصدر، بدون ما يعيد التوليد
             </li>
           </ul>
         </div>

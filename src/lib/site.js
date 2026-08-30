@@ -39,7 +39,7 @@ export function absoluteUrl(path = '/') {
 
 /* The Open Graph preview. Regenerate with scripts/generate-og-image.mjs. */
 export const OG_IMAGE_PATH = '/assets/areeb/og-image.png'
-export const OG_IMAGE_ALT = 'أريب — من كلام العميل إلى PRD جاهز للتنفيذ'
+export const OG_IMAGE_ALT = 'أريب — من فكرة مبعثرة إلى منتج واضح'
 
 /* Contact address for the privacy/terms pages. Env-driven for the same
    reason as SITE_URL: an invented address on a legal page is worse than
@@ -48,7 +48,7 @@ export const OG_IMAGE_ALT = 'أريب — من كلام العميل إلى PRD 
 export const CONTACT_EMAIL = (import.meta.env.VITE_CONTACT_EMAIL || '').trim()
 
 export const DEFAULT_DESCRIPTION =
-  'أريب أداة ذكاء المتطلبات لمحللي ومدراء المنتج: حوّل جلسة اكتشاف المتطلبات مع عميلك إلى وثيقة PRD عربية منظّمة وجاهزة للتصدير.'
+  'قل لأريب فكرتك زي ما هي. يسألك عن اللي ناقص، يرتّب كلامك، ويطلّع لك وثيقة PRD عربية مرتّبة تقدر تراجعها وتصدّرها PDF أو Markdown.'
 
 /* The route inventory lives in ./routes.js as env-free data so the Vite
    build can import the same list — re-exported here so app code has one

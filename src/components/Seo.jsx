@@ -64,7 +64,7 @@ export function Seo({ title, description = DEFAULT_DESCRIPTION, noindex = false,
   useEffect(() => {
     /* The brand goes in every title, but never twice — the landing page's
        own title already *is* the brand, so it opts out by passing no title. */
-    const fullTitle = title ? `${title} — ${SITE_NAME}` : `${SITE_NAME} — من كلام العميل إلى PRD جاهز للتنفيذ`
+    const fullTitle = title ? `${title} — ${SITE_NAME}` : `${SITE_NAME} — من فكرة مبعثرة إلى منتج واضح`
     document.title = fullTitle
 
     setTag('meta[name="description"]', { name: 'description', content: description })

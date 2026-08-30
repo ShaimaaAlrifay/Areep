@@ -30,19 +30,19 @@ const SCENARIOS = [
     id: 'study',
     prompt: 'أبغى أبني تطبيق يساعد الطلاب ينظمون مذاكرتهم',
     reply:
-      'حلو. قبل ما نفكر بالحل — مين الطالب اللي بالبال؟ طالب جامعي عنده مواد كثيرة، ولا طالب ثانوي يجهّز لاختبار واحد كبير؟ وش أكثر شي يضيّع وقته اليوم؟',
+      'حلو، بس خلّنا ما نستعجل بالحل. مين الطالب اللي تقصده؟ جامعي عنده مواد كثيرة، ولا ثانوي يجهّز لاختبار؟ ووش أكثر شي معطّله اليوم؟',
     confidence: 34,
     requirements: [
       { id: 'GOAL-001', type: 'الهدف', title: 'تنظيم وقت المذاكرة', priority: 'إلزامي' },
-      { id: 'USER-001', type: 'مستخدم', title: 'طالب — الفئة لم تُحدد بعد', priority: 'غير محدد' },
+      { id: 'USER-001', type: 'مستخدم', title: 'طالب — لسه الفئة ما تحددت', priority: 'غير محدد' },
     ],
-    missing: ['الفئة المستهدفة بدقة', 'ما الذي يضيّع وقت الطالب فعليًا', 'هل المشكلة في التخطيط أم في الالتزام'],
+    missing: ['مين الفئة بالضبط', 'وش يضيّع وقت الطالب فعليًا', 'المشكلة في التخطيط ولا في الالتزام'],
   },
   {
     id: 'clinic',
     prompt: 'عندي عيادة وأبغى نظام مواعيد يقلل الغياب',
     reply:
-      'واضح. الغياب له سببين غالبًا: نسيان، أو صعوبة التأجيل. أي وحد منهم أكثر عندك؟ وكم موعد باليوم تقريبًا عشان أعرف حجم النظام؟',
+      'واضح. الغياب عادة له سببين: إما نسيان، أو إن التأجيل صعب. أي واحد فيهم أكثر عندك؟ وكم موعد يجيك باليوم عشان أعرف حجم النظام؟',
     confidence: 48,
     requirements: [
       { id: 'GOAL-001', type: 'الهدف', title: 'تقليل نسبة الغياب عن المواعيد', priority: 'إلزامي' },
@@ -50,21 +50,21 @@ const SCENARIOS = [
       { id: 'FEAT-001', type: 'ميزة', title: 'نظام حجز وتذكير بالمواعيد', priority: 'إلزامي' },
       { id: 'RISK-001', type: 'خطر', title: 'قد لا يقرأ المريض التذكير', priority: 'غير محدد' },
     ],
-    missing: ['السبب الأغلب للغياب', 'حجم المواعيد اليومي', 'قناة التذكير المفضّلة'],
+    missing: ['وش السبب الأغلب للغياب', 'كم موعد باليوم', 'وين يوصله التذكير'],
   },
   {
     id: 'store',
     prompt: 'محل عندي، أبغى الزباين يطلبون أونلاين بدل الواتساب',
     reply:
-      'يعني المشكلة مو إن ما عندك مبيعات — المشكلة إن الطلبات كلها بالواتساب وتضيع. صح؟ كم طلب يوصلك باليوم، ومين اللي يرد عليهم الآن؟',
+      'يعني المشكلة مو بالمبيعات، المشكلة إن الطلبات كلها بالواتساب وتضيع. صح؟ كم طلب يوصلك باليوم، ومين اللي يرد عليهم الحين؟',
     confidence: 52,
     requirements: [
-      { id: 'GOAL-001', type: 'الهدف', title: 'نقل الطلبات من الواتساب إلى مسار منظّم', priority: 'إلزامي' },
+      { id: 'GOAL-001', type: 'الهدف', title: 'نقل الطلبات من الواتساب لمسار منظّم', priority: 'إلزامي' },
       { id: 'USER-001', type: 'مستخدم', title: 'زبون يطلب من المحل', priority: 'إلزامي' },
       { id: 'FR-001', type: 'متطلب', title: 'سلة طلب وتأكيد', priority: 'إلزامي' },
       { id: 'NFR-001', type: 'غير وظيفي', title: 'يعمل على الجوال أساسًا', priority: 'مفضّل' },
     ],
-    missing: ['عدد الطلبات اليومي', 'من يدير الطلبات حاليًا', 'هل يوجد دفع إلكتروني'],
+    missing: ['كم طلب باليوم', 'مين يدير الطلبات الحين', 'فيه دفع إلكتروني ولا لا'],
   },
 ]
 
@@ -129,15 +129,15 @@ export function LiveDemo() {
   return (
     <section className="lp-demo" id="demo" ref={ref} aria-labelledby="demo-heading">
       <div className="lp-shell">
-        <p className="lp-eyebrow">تجربة أريب</p>
+        <p className="lp-eyebrow">جرّبه</p>
         <h2 id="demo-heading" className="lp-h2">
-          لا تحتاج أن تتعلّم كيف تستخدمه.
-          <span className="lp-h2-dim"> تكلّم فقط.</span>
+          ما تحتاج تتعلّم كيف تستخدمه.
+          <span className="lp-h2-dim"> بس تكلّم.</span>
         </h2>
 
         <div className="lp-demo-grid">
           <div className="lp-demo-pick">
-            <p className="lp-label">جرّب واحدة من هذي:</p>
+            <p className="lp-label">جرّب وحدة من هذي:</p>
             <div className="lp-demo-chips" role="group" aria-label="أمثلة للتجربة">
               {SCENARIOS.map((scene, i) => (
                 <button
@@ -152,8 +152,8 @@ export function LiveDemo() {
               ))}
             </div>
             <p className="lp-demo-note">
-              هذه إعادة عرض لجلسة حقيقية — بنفس الشكل الذي يُخرجه أريب فعليًا، وليست نموذجًا يعمل الآن على
-              هذه الصفحة.
+              هذي إعادة عرض لجلسة حقيقية، بنفس الشكل اللي يطلّعه أريب فعليًا — مو نموذج شغّال الحين على
+              هذي الصفحة.
             </p>
           </div>
 
@@ -186,7 +186,7 @@ export function LiveDemo() {
 
             <aside className={`lp-extract${phase === PHASES.ANSWERED ? ' is-live' : ''}`} aria-label="ما استخرجه أريب">
               <header className="lp-extract-head">
-                <span className="lp-label">استُخرج من هذه الرسالة</span>
+                <span className="lp-label">طلع من هذي الرسالة</span>
                 <span className="lp-conf">
                   <span className="lp-conf-bar">
                     <span
@@ -211,7 +211,7 @@ export function LiveDemo() {
               </ul>
 
               <div className="lp-missing">
-                <span className="lp-label">وما زال ناقصًا</span>
+                <span className="lp-label">ولسه ناقص</span>
                 <ul>
                   {scenario.missing.map((item) => (
                     <li key={item}>{item}</li>

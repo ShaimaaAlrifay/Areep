@@ -22,7 +22,7 @@ export function SiteFooter() {
             accessible one: the tagline beside it stays plain text. */}
         <p className="site-footer-brand">
           <img src={LOGO_LOCKUP_WHITE} alt={SITE_NAME} className="site-footer-lockup" />
-          <span className="site-footer-tagline">ذكاء المتطلبات لمحللي ومدراء المنتج</span>
+          <span className="site-footer-tagline">من كلام العميل إلى متطلبات واضحة</span>
         </p>
 
         {/* A real <nav> with an accessible name: a screen-reader user
