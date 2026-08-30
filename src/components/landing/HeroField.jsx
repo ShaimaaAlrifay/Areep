@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { LOGO_MARK_WHITE } from '../../lib/brand'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 
 /* ============================================================
@@ -35,18 +36,35 @@ import { useReducedMotion } from '../../hooks/useReducedMotion'
      with no loop at all — the metaphor still lands, it just does not move.
    ============================================================ */
 
-/* Seat coordinates for the mark, in a unit square, traced from the real
-   artwork in public/assets/areeb/logo-white.png: five petal lobes around a
-   centre, plus the sparkle above. Each entry is a lobe centre and a radius
-   the seats scatter within, so the silhouette reads as the logo without
-   pretending to be a pixel-accurate trace. */
-const LOBES = [
-  { x: 0.5, y: 0.78, r: 0.1 },   // lower centre petal
-  { x: 0.22, y: 0.46, r: 0.13 }, // upper left wing
-  { x: 0.78, y: 0.46, r: 0.13 }, // upper right wing
-  { x: 0.28, y: 0.68, r: 0.12 }, // lower left wing
-  { x: 0.72, y: 0.68, r: 0.12 }, // lower right wing
-  { x: 0.5, y: 0.2, r: 0.055 },  // the sparkle
+/* Seat coordinates come from the real artwork, not from an approximation.
+
+   They used to be six hand-placed circles "traced from" the logo. Five
+   overlapping discs plus a dot do not read as the Areeb mark — they read
+   as a blob, which is exactly what the resolved hero showed. The mark has
+   five petals with real negative space between them and a four-point
+   sparkle above; none of that survives being approximated by circles.
+
+   So the silhouette is sampled from public/assets/areeb/logo-white.png
+   itself: draw it small, read the alpha channel, and take seats from the
+   opaque pixels. The mark is then always correct by construction, and a
+   future change to the artwork moves the particles with it instead of
+   silently drifting out of sync with the brand.
+
+   Sampling is stratified over a grid rather than uniformly random: 260
+   points scattered at random over a shape this size leave visible clumps
+   and holes, while one point per occupied cell distributes them evenly
+   enough that the silhouette reads.
+
+   The circles below survive only as the seats used for the first frames,
+   before the image has decoded. They are never what the visitor ends up
+   looking at. */
+const FALLBACK_LOBES = [
+  { x: 0.5, y: 0.78, r: 0.1 },
+  { x: 0.22, y: 0.46, r: 0.13 },
+  { x: 0.78, y: 0.46, r: 0.13 },
+  { x: 0.28, y: 0.68, r: 0.12 },
+  { x: 0.72, y: 0.68, r: 0.12 },
+  { x: 0.5, y: 0.2, r: 0.055 },
 ]
 
 /* Fraction of the pinned travel spent assembling. The rest is a hold on
@@ -56,20 +74,100 @@ const LOBES = [
    Measured rather than guessed: `order` eases toward its target and the
    seating curve is easeOut, so the field *looks* finished noticeably
    before this value is reached. At 0.6 it read as complete only 40% of
-   the way in, leaving most of the pin as dead scroll. 0.8 paces the
-   assembly across more of the travel and leaves a hold that registers
-   without overstaying. */
+   the way in, leaving most of the pin as dead scroll. */
 const ASSEMBLE_BY = 0.8
 
 const COUNT = 260
 const IDLE_ALPHA = 0.5
-const LINK_DISTANCE = 0.1
+/* Link reach, as a fraction of the smaller canvas axis. Tightened from
+   0.1 once the seats came from the real artwork: at that reach the web
+   bridged the gaps between the petals and filled in the mark's negative
+   space, which is most of what makes it recognisable. 0.075 keeps each
+   petal densely meshed while leaving the gaps open. */
+const LINK_DISTANCE = 0.075
+
+/**
+ * Reads the mark's silhouette out of its own PNG and returns `count` seats
+ * in a unit square.
+ *
+ * The image is letterboxed into that square rather than stretched to it —
+ * the artwork is 1271x1132, and normalising each axis independently would
+ * squash the mark by about 11%.
+ *
+ * Stratified over a grid: cell size is chosen so the number of occupied
+ * cells lands near `count`, then one jittered point is taken per occupied
+ * cell. Uniform random sampling of the same pixels gives the same average
+ * density but visibly clumps at this point count.
+ *
+ * Resolves to null on any failure (image missing, decode error, a tainted
+ * canvas) so the caller can simply keep the seats it already has.
+ */
+async function seatsFromArtwork(src, count, random) {
+  try {
+    const image = new Image()
+    image.src = src
+    await image.decode()
+
+    const RES = 260
+    const scale = Math.min(RES / image.naturalWidth, RES / image.naturalHeight)
+    const w = Math.max(1, Math.round(image.naturalWidth * scale))
+    const h = Math.max(1, Math.round(image.naturalHeight * scale))
+
+    const off = document.createElement('canvas')
+    off.width = w
+    off.height = h
+    const g = off.getContext('2d', { willReadFrequently: true })
+    if (!g) return null
+    g.drawImage(image, 0, 0, w, h)
+    const { data } = g.getImageData(0, 0, w, h)
+
+    // Letterbox offsets: centre the shorter axis inside the unit square.
+    const span = Math.max(w, h)
+    const offX = (span - w) / 2
+    const offY = (span - h) / 2
+
+    /* Cell size from the filled area: one seat per cell means
+       filled / cell^2 ~= count. */
+    let filled = 0
+    for (let i = 3; i < data.length; i += 4) if (data[i] > 128) filled += 1
+    if (!filled) return null
+    const cell = Math.max(2, Math.round(Math.sqrt(filled / count)))
+
+    const seats = []
+    for (let cy = 0; cy < h; cy += cell) {
+      for (let cx = 0; cx < w; cx += cell) {
+        const hits = []
+        for (let y = cy; y < Math.min(cy + cell, h); y += 1) {
+          for (let x = cx; x < Math.min(cx + cell, w); x += 1) {
+            if (data[(y * w + x) * 4 + 3] > 128) hits.push([x, y])
+          }
+        }
+        if (!hits.length) continue
+        const [px, py] = hits[Math.floor(random() * hits.length)]
+        seats.push({ sx: (px + offX) / span, sy: (py + offY) / span })
+      }
+    }
+    if (seats.length < count * 0.5) return null
+
+    /* Trim or pad to exactly `count`. Trimming removes evenly spaced
+       entries rather than a contiguous block, so no region thins out. */
+    if (seats.length > count) {
+      const step = seats.length / count
+      const picked = []
+      for (let i = 0; i < count; i += 1) picked.push(seats[Math.floor(i * step)])
+      return picked
+    }
+    while (seats.length < count) seats.push(seats[Math.floor(random() * seats.length)])
+    return seats
+  } catch {
+    return null
+  }
+}
 
 function buildParticles(random) {
   const particles = []
   for (let i = 0; i < COUNT; i += 1) {
-    // Weight seats toward the larger lobes so the silhouette reads evenly.
-    const lobe = LOBES[i % LOBES.length]
+    const lobe = FALLBACK_LOBES[i % FALLBACK_LOBES.length]
     const angle = random() * Math.PI * 2
     const radius = Math.sqrt(random()) * lobe.r
     particles.push({
@@ -120,6 +218,19 @@ export function HeroField() {
        ever rendered outside it, which the fallback in onScroll covers. */
     const track = wrap.closest('.lp-hero-scroll')
     const particles = buildParticles(seeded(20260829))
+    let cancelled = false
+
+    /* Seats start as the fallback circles and are replaced the moment the
+       artwork decodes — usually within the first few frames, and always
+       while the field is still unresolved, so nothing visibly jumps. */
+    seatsFromArtwork(LOGO_MARK_WHITE, COUNT, seeded(70701337)).then((seats) => {
+      if (cancelled || !seats) return
+      for (let i = 0; i < particles.length; i += 1) {
+        particles[i].sx = seats[i].sx
+        particles[i].sy = seats[i].sy
+      }
+      if (reduced) draw(0)
+    })
 
     let width = 0
     let height = 0
@@ -302,6 +413,7 @@ export function HeroField() {
     document.addEventListener('visibilitychange', onVisibility)
 
     return () => {
+      cancelled = true
       if (frame) cancelAnimationFrame(frame)
       observer.disconnect()
       window.removeEventListener('scroll', onScroll)
