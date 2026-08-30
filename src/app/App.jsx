@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from '../components/ProtectedRoute'
+import { ScrollToTop } from '../components/ScrollToTop'
 import { SkipLink } from '../components/SkipLink'
 import { AuthProvider } from '../contexts/AuthContext'
 import { ForgotPassword } from '../features/auth/ForgotPassword'
@@ -37,6 +38,7 @@ function App() {
   return (
     <AuthProvider>
       <SkipLink />
+      <ScrollToTop />
       {/* Reuses the app's existing loading treatment, so a chunk fetch looks
           identical to the session check that already happens here — not a
           second, unfamiliar spinner. */}

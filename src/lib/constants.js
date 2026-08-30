@@ -74,10 +74,20 @@ export const PRIORITY_LABELS = {
 
 export const PRIORITY_ORDER = ['Must Have', 'Should Have', 'Could Have', "Won't Have", 'Unspecified']
 
+/* The numbering system is pinned rather than left to the locale's default.
+
+   Which digits a bare 'ar' produces is not fixed: it depends on the
+   engine's ICU/CLDR data, and the two runtimes checked here both happened
+   to resolve to `latn` — but `arab` (٢٠٢٦) is a legitimate resolution of
+   the same locale elsewhere, so relying on the default means the digits
+   are a property of the visitor's browser rather than a decision.
+   `-u-nu-latn` keeps month names Arabic and digits Latin in every engine. */
+const AR_LATN = 'ar-u-nu-latn'
+
 export function formatDate(value) {
   if (!value) return '—'
   try {
-    return new Intl.DateTimeFormat('ar', { year: 'numeric', month: 'short', day: 'numeric' }).format(
+    return new Intl.DateTimeFormat(AR_LATN, { year: 'numeric', month: 'short', day: 'numeric' }).format(
       new Date(value),
     )
   } catch {
@@ -100,7 +110,7 @@ export function formatRelativeDate(value) {
   try {
     const date = new Date(value)
     const diffSeconds = Math.round((date.getTime() - Date.now()) / 1000)
-    const rtf = new Intl.RelativeTimeFormat('ar', { numeric: 'auto' })
+    const rtf = new Intl.RelativeTimeFormat(AR_LATN, { numeric: 'auto' })
 
     if (Math.abs(diffSeconds) < 60) return 'الآن'
 

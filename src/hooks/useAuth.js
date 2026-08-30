@@ -51,6 +51,25 @@ export function useAuth() {
     return { data, error }
   }, [])
 
+  /* OAuth leaves the app entirely: Supabase redirects to Google, Google
+     redirects back to `redirectTo`, and only then does a session exist. So
+     there is no session to return here — a successful call resolves while
+     the browser is already navigating away, and the caller's job is only to
+     surface an error if the redirect never starts.
+
+     redirectTo is /chat because that is where a signed-in user belongs;
+     it must also be listed in Supabase's allowed redirect URLs, and Google
+     must be enabled as a provider in the project, or this returns a
+     configuration error rather than silently doing nothing. */
+  const signInWithGoogle = useCallback(async () => {
+    if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_ERROR }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/chat` },
+    })
+    return { error }
+  }, [])
+
   const signOut = useCallback(async () => {
     if (!isSupabaseConfigured) return { error: NOT_CONFIGURED_ERROR }
     const { error } = await supabase.auth.signOut()
@@ -87,6 +106,7 @@ export function useAuth() {
     loading,
     signIn,
     signUp,
+    signInWithGoogle,
     signOut,
     resetPassword,
     updatePassword,

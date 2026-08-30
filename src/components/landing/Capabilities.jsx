@@ -1,4 +1,5 @@
 import { useInView } from '../../hooks/useInView'
+import { kashida } from '../../lib/kashida'
 
 /* ============================================================
    Capabilities as editorial rows, not a card grid.
@@ -34,7 +35,7 @@ const ROWS = [
   },
   {
     k: 'المراجعة',
-    title: 'أنت اللي تعتمد.',
+    title: `أنت اللي ${kashida('تعتمد')}.`,
     body: 'قبل ما تطلع الوثيقة، تشوف كل شي. عدّل، احذف، أضف متطلب فات أريب، أو غيّر الأولوية. ما فيه شي يدخل الوثيقة قبل ما تشوفه.',
     proof: {
       kind: 'moscow',

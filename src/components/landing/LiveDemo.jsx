@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useInView } from '../../hooks/useInView'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
+import { kashida } from '../../lib/kashida'
 
 /* ============================================================
    "Watch it think" — the page's interactive centrepiece.
@@ -27,16 +28,21 @@ import { useReducedMotion } from '../../hooks/useReducedMotion'
 
 const SCENARIOS = [
   {
-    id: 'study',
-    prompt: 'أبغى أبني تطبيق يساعد الطلاب ينظمون مذاكرتهم',
+    /* Deliberately the vaguest of the three: one sentence with no domain,
+       no user and no scenario in it. It is the honest worst case a founder
+       actually opens with, and it shows the thing worth showing — Areeb
+       narrowing it instead of guessing, with a confidence score that stays
+       low because almost nothing has been established yet. */
+    id: 'reassure',
+    prompt: 'أبغى أبني تطبيق يطمّن المستخدم',
     reply:
-      'حلو، بس خلّنا ما نستعجل بالحل. مين الطالب اللي تقصده؟ جامعي عنده مواد كثيرة، ولا ثانوي يجهّز لاختبار؟ ووش أكثر شي معطّله اليوم؟',
-    confidence: 34,
+      '«يطمّن» كلمة واسعة، خلّني أضيّقها معك. يطمّن على مين أو على وش؟ على شخص من أهله، ولا على طلب طلبه، ولا على وضعه هو؟ ووش الشي اللي يقلقه اليوم وما يلقى له جواب؟',
+    confidence: 22,
     requirements: [
-      { id: 'GOAL-001', type: 'الهدف', title: 'تنظيم وقت المذاكرة', priority: 'إلزامي' },
-      { id: 'USER-001', type: 'مستخدم', title: 'طالب — لسه الفئة ما تحددت', priority: 'غير محدد' },
+      { id: 'GOAL-001', type: 'الهدف', title: 'طمأنة المستخدم', priority: 'إلزامي' },
+      { id: 'USER-001', type: 'مستخدم', title: 'المستخدم — لسه ما تحدد مين', priority: 'غير محدد' },
     ],
-    missing: ['مين الفئة بالضبط', 'وش يضيّع وقت الطالب فعليًا', 'المشكلة في التخطيط ولا في الالتزام'],
+    missing: ['يطمّن على وش بالضبط', 'مين المستخدم', 'وش يقلقه اليوم'],
   },
   {
     id: 'clinic',
@@ -132,7 +138,7 @@ export function LiveDemo() {
         <p className="lp-eyebrow">جرّبه</p>
         <h2 id="demo-heading" className="lp-h2">
           ما تحتاج تتعلّم كيف تستخدمه.
-          <span className="lp-h2-dim"> بس تكلّم.</span>
+          <span className="lp-h2-dim"> بس {kashida('تكلّم')}.</span>
         </h2>
 
         <div className="lp-demo-grid">

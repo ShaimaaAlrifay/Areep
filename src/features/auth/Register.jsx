@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '../../components/AuthLayout'
+import { GoogleSignInButton } from '../../components/GoogleSignInButton'
 import { NotConfiguredNotice } from '../../components/NotConfiguredNotice'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { isSupabaseConfigured } from '../../lib/supabase'
@@ -66,6 +67,7 @@ export function Register() {
         description="أنشئ حساباً مجانياً في أريب وابدأ أول جلسة اكتشاف متطلبات مع عميلك — بلا بطاقة دفع."
       />
       {!isSupabaseConfigured && <NotConfiguredNotice />}
+      <GoogleSignInButton />
       <form className="form" onSubmit={handleSubmit} style={{ marginTop: isSupabaseConfigured ? 0 : 'var(--space-4)' }}>
         {error && (
           <p className="form-error" role="alert">

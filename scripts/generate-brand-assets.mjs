@@ -78,7 +78,7 @@ const html = `<!doctype html>
     <h1>من فكرة مبعثرة إلى منتج واضح.</h1>
     <p class="sub">قل لأريب فكرتك زي ما هي، ويطلّع لك متطلبات واضحة ووثيقة PRD عربية مرتّبة.</p>
   </div>
-  <div><div class="rule"></div><div class="foot"><span class="dot"></span><span>من كلام العميل إلى متطلبات واضحة</span></div></div>
+  <div><div class="rule"></div><div class="foot"><span class="dot"></span><span>من فكرة مبعثرة إلى منتج واضح</span></div></div>
 </body></html>`
 
 const browser = await chromium.launch()

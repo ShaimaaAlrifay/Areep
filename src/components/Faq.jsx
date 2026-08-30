@@ -1,4 +1,6 @@
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useReducedMotion } from '../hooks/useReducedMotion'
 
 /* ============================================================
    FAQ accordion.
@@ -106,18 +108,149 @@ export const FAQ_ITEMS = [
   },
 ]
 
+/* How long Areeb "thinks" before the answer appears. Long enough to read
+   as a reply rather than an instant lookup, short enough that nobody is
+   waiting on it — the beat is the point, not the delay.
+
+   Deliberately just past the 320ms height transition: the answer starts
+   fading in as the panel finishes opening, so there is no stretch of
+   full-height empty box with three dots stranded at the top of it. */
+const THINKING_MS = 340
+
+/* ============================================================
+   One question, asked and answered.
+
+   The accordion is framed as an exchange: the question is the visitor's
+   message, and opening it is Areeb replying — same labels, same rules on
+   the reading-leading edge, same thinking dots as the real chat in the
+   product. It is the same interaction as before, wearing the interface
+   the rest of the app already speaks in.
+
+   The answer is in the DOM from the first render and stays there while
+   the dots are showing — it is only transparent. That matters three
+   times over: the height animation has something to measure, so it runs
+   once instead of twice; find-in-page still reaches the text; and a
+   screen reader announces the answer immediately rather than being made
+   to sit through a decorative pause.
+
+   The <details> element is kept — it is what gives keyboard operation,
+   the expanded/collapsed announcement, and find-in-page reaching text
+   inside a closed item. What is NOT kept is letting the browser toggle
+   it, because a native toggle is instantaneous by definition: the
+   content simply starts or stops being rendered.
+
+   An earlier attempt animated `::details-content` instead, which is the
+   tidier CSS and needs no JavaScript at all — but it only exists in
+   recent Chromium. In Safari and Firefox the rule is ignored and the
+   panel snapped open exactly as before, which is a fix that works on the
+   machine it was written on and nowhere else.
+
+   So: the click is intercepted, `open` is set by us, and a wrapper's
+   height is animated between 0 and its measured content height. Closing
+   holds `open` true until the animation finishes, so the content is
+   still there to animate. Height settles to `auto` once open, so a
+   panel whose content reflows (a long answer wrapping at a narrower
+   width) is not stuck at a stale pixel height.
+   ============================================================ */
+function FaqItem({ item }) {
+  const [open, setOpen] = useState(false)
+  const [thinking, setThinking] = useState(false)
+  const wrapRef = useRef(null)
+  const closingRef = useRef(false)
+  const timerRef = useRef(0)
+  const reduced = useReducedMotion()
+
+  useEffect(() => () => clearTimeout(timerRef.current), [])
+
+  const handleClick = (event) => {
+    // The browser would toggle `open` itself on this click; we do it.
+    event.preventDefault()
+    clearTimeout(timerRef.current)
+
+    const wrap = wrapRef.current
+
+    if (reduced || !wrap) {
+      // No animation to run, so nothing should be holding an inline height,
+      // and no pause before the answer.
+      if (wrap) wrap.style.height = ''
+      setThinking(false)
+      setOpen((value) => !value)
+      return
+    }
+
+    if (!open) {
+      closingRef.current = false
+      setThinking(true)
+      setOpen(true)
+      timerRef.current = setTimeout(() => setThinking(false), THINKING_MS)
+      // Two frames: one for React to render the content so it can be
+      // measured, one so the browser registers the 0 height as a start
+      // value rather than collapsing both into a single style change.
+      requestAnimationFrame(() => {
+        wrap.style.height = '0px'
+        requestAnimationFrame(() => {
+          wrap.style.height = `${wrap.scrollHeight}px`
+        })
+      })
+    } else {
+      closingRef.current = true
+      setThinking(false)
+      wrap.style.height = `${wrap.scrollHeight}px`
+      requestAnimationFrame(() => {
+        wrap.style.height = '0px'
+      })
+    }
+  }
+
+  const handleTransitionEnd = (event) => {
+    if (event.propertyName !== 'height' || event.target !== wrapRef.current) return
+    if (closingRef.current) {
+      closingRef.current = false
+      // Only the state change here. Clearing the inline height as well
+      // would restore the panel to its natural size for the frame between
+      // this line and React committing `open={false}` — a flash of the
+      // full answer at the very end of closing it. The stale `0px` is
+      // harmless: opening always sets the height explicitly again.
+      setOpen(false)
+    } else if (wrapRef.current) {
+      wrapRef.current.style.height = 'auto'
+    }
+  }
+
+  return (
+    <details className="faq-item" open={open}>
+      <summary className="faq-question" onClick={handleClick}>
+        <span className="faq-ask">
+          <span className="faq-who">أنت</span>
+          <span className="faq-ask-text">{item.q}</span>
+        </span>
+        <ChevronIcon />
+      </summary>
+      <div className="faq-answer-wrap" ref={wrapRef} onTransitionEnd={handleTransitionEnd}>
+        <div className="faq-reply">
+          <span className="faq-who faq-who-ai">أريب</span>
+          <div className="faq-reply-body">
+            {thinking && (
+              <span className="faq-typing" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
+            )}
+            <div className={`faq-answer${thinking ? ' is-pending' : ''}`}>{item.a}</div>
+          </div>
+        </div>
+      </div>
+    </details>
+  )
+}
+
 /** The accordion itself — shared between the landing section and /faq. */
 export function FaqList({ items = FAQ_ITEMS }) {
   return (
     <div className="faq-list">
       {items.map((item) => (
-        <details key={item.q} className="faq-item">
-          <summary className="faq-question">
-            <span>{item.q}</span>
-            <ChevronIcon />
-          </summary>
-          <div className="faq-answer">{item.a}</div>
-        </details>
+        <FaqItem key={item.q} item={item} />
       ))}
     </div>
   )

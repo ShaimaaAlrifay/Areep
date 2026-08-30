@@ -11,6 +11,7 @@ import { PrdBuild } from '../components/landing/PrdBuild'
 import { useAuthContext } from '../contexts/AuthContext'
 import { EVENTS, track } from '../lib/analytics'
 import '../styles/landing.css'
+import { kashida } from '../lib/kashida'
 
 /* ============================================================
    Landing page.
@@ -62,14 +63,9 @@ export function Landing() {
             <HeroField />
 
             <div className="lp-shell lp-hero-inner">
-              <p className="lp-hero-kicker">
-                <span className="lp-dot" aria-hidden="true" />
-                ذكاء المتطلبات — بالعربي
-              </p>
-
               <h1 id="hero-heading" className="lp-hero-title">
                 <span className="lp-line">من فكرة مبعثرة</span>
-                <span className="lp-line lp-line-dim">إلى منتج واضح.</span>
+                <span className="lp-line lp-line-dim">إلى منتج {kashida('واضح')}.</span>
               </h1>
 
               <p className="lp-hero-lede">
@@ -96,10 +92,17 @@ export function Landing() {
               {!user && <p className="lp-hero-note">مجاني حاليًا · ولا يحتاج بطاقة</p>}
             </div>
 
+            {/* Sits in the page grid rather than being pinned to the raw
+                viewport edge: the outer element spans the full width and the
+                inner .lp-shell gives it the same max-width and gutters every
+                other section uses, so the rail starts exactly on the column
+                the copy above it starts on. */}
             <div className="lp-hero-rail" aria-hidden="true">
-              <span className="lp-num">فوضى</span>
-              <span className="lp-rail-line" />
-              <span className="lp-num">بنية</span>
+              <div className="lp-shell lp-hero-rail-inner">
+                <span className="lp-num">فوضى</span>
+                <span className="lp-rail-line" />
+                <span className="lp-num">بنية</span>
+              </div>
             </div>
           </section>
         </div>
@@ -132,7 +135,7 @@ export function Landing() {
           <div className="lp-shell lp-close-inner">
             <h2 id="close-heading" className="lp-close-title">
               <span className="lp-line">الفكرة منك.</span>
-              <span className="lp-line lp-line-dim">الوضوح علينا.</span>
+              <span className="lp-line lp-line-dim">{kashida('الوضوح')} علينا.</span>
             </h2>
             <Link
               to={primary.to}

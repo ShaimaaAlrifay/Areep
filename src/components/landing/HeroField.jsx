@@ -235,7 +235,11 @@ export function HeroField() {
     let width = 0
     let height = 0
     let dpr = 1
-    const pointer = { x: 0.5, y: 0.42, active: false }
+    /* `to` is where the cursor actually is; `x`/`y` chase it a little each
+        frame, and `power` fades the whole influence in and out. Reading the
+        raw cursor position made the field snap under the mouse — the eased
+        pair is what turns it into a drift. */
+    const pointer = { x: 0.5, y: 0.42, toX: 0.5, toY: 0.42, power: 0, toPower: 0 }
     let order = reduced ? 1 : 0
     let scrollOrder = 0
     let frame = 0
@@ -280,11 +284,14 @@ export function HeroField() {
         // Pointer proximity resolves the field locally, so moving the
         // mouse feels like clarifying that part of the picture.
         let local = order
-        if (pointer.active) {
+        if (pointer.power > 0.001) {
           const dx = driftX / width - pointer.x
           const dy = driftY / height - pointer.y
-          const near = Math.max(0, 1 - Math.hypot(dx, dy) / 0.34)
-          local = Math.min(1, order + near * 0.55)
+          /* A wider, softer falloff than a linear one: squaring the ramp
+             means the influence tapers off gradually at its edge instead of
+             ending on a visible circle. */
+          const t = Math.max(0, 1 - Math.hypot(dx, dy) / 0.42)
+          local = Math.min(1, order + t * t * 0.5 * pointer.power)
         }
         const t = easeOut(local)
         p.x = driftX + (seat.x - driftX) * t
@@ -333,6 +340,12 @@ export function HeroField() {
       // Ease toward the scroll-driven target rather than snapping, so the
       // field keeps moving for a beat after the scroll stops.
       order += (scrollOrder - order) * 0.06
+      // The pointer is eased on both axes and in strength, at a low rate —
+      // this is what makes the interaction read as the field noticing you
+      // rather than reacting to you.
+      pointer.x += (pointer.toX - pointer.x) * 0.045
+      pointer.y += (pointer.toY - pointer.y) * 0.045
+      pointer.power += (pointer.toPower - pointer.power) * 0.03
       draw(time)
       frame = requestAnimationFrame(tick)
     }
@@ -374,12 +387,12 @@ export function HeroField() {
 
     const onPointerMove = (event) => {
       const rect = wrap.getBoundingClientRect()
-      pointer.x = (event.clientX - rect.left) / rect.width
-      pointer.y = (event.clientY - rect.top) / rect.height
-      pointer.active = true
+      pointer.toX = (event.clientX - rect.left) / rect.width
+      pointer.toY = (event.clientY - rect.top) / rect.height
+      pointer.toPower = 1
     }
     const onPointerLeave = () => {
-      pointer.active = false
+      pointer.toPower = 0
     }
     const onVisibility = () => {
       if (document.hidden && frame) {
