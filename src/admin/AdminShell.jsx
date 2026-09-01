@@ -25,20 +25,31 @@ import '../styles/admin.css'
    versions of the same week.
    ============================================================ */
 
-const NAV = [
-  { to: '/admin', end: true, label: 'نظرة عامة', en: 'Overview', icon: 'grid' },
-  { to: '/admin/acquisition', label: 'الاستحواذ', en: 'Acquisition', icon: 'arrow' },
-  { to: '/admin/activation', label: 'التفعيل', en: 'Activation', icon: 'spark' },
-  { to: '/admin/engagement', label: 'التفاعل', en: 'Engagement', icon: 'chat' },
-  { to: '/admin/quality', label: 'الجودة', en: 'Quality', icon: 'check' },
-  { to: '/admin/retention', label: 'الاحتفاظ', en: 'Retention', icon: 'repeat' },
-  { to: '/admin/revenue', label: 'الإيراد', en: 'Revenue', icon: 'coin' },
-  { to: '/admin/ai', label: 'عمليات الذكاء الاصطناعي', en: 'AI Operations', icon: 'cpu' },
-  { to: '/admin/users', label: 'المستخدمون', en: 'Users', icon: 'users' },
-  { to: '/admin/projects', label: 'المشاريع', en: 'Projects', icon: 'folder' },
-  { to: '/admin/prds', label: 'الوثائق', en: 'PRDs', icon: 'doc' },
-  { to: '/admin/health', label: 'صحة النظام', en: 'System Health', icon: 'pulse' },
-  { to: '/admin/settings', label: 'الإعدادات', en: 'Settings', icon: 'gear' },
+/* Grouped rather than one flat list: the funnel stages (Overview through
+   AI Operations) are what the owner reads top-to-bottom on a normal day;
+   the entity browsers (Users/Projects/PRDs) are lookups, not a narrative;
+   System Health and Settings are operational, not analytical. A divider
+   between the three says that without a label having to. */
+const NAV_GROUPS = [
+  [
+    { to: '/admin', end: true, label: 'نظرة عامة', en: 'Overview', icon: 'grid' },
+    { to: '/admin/acquisition', label: 'الاستحواذ', en: 'Acquisition', icon: 'arrow' },
+    { to: '/admin/activation', label: 'التفعيل', en: 'Activation', icon: 'spark' },
+    { to: '/admin/engagement', label: 'التفاعل', en: 'Engagement', icon: 'chat' },
+    { to: '/admin/quality', label: 'الجودة', en: 'Quality', icon: 'check' },
+    { to: '/admin/retention', label: 'الاحتفاظ', en: 'Retention', icon: 'repeat' },
+    { to: '/admin/revenue', label: 'الإيراد', en: 'Revenue', icon: 'coin' },
+    { to: '/admin/ai', label: 'عمليات الذكاء الاصطناعي', en: 'AI Operations', icon: 'cpu' },
+  ],
+  [
+    { to: '/admin/users', label: 'المستخدمون', en: 'Users', icon: 'users' },
+    { to: '/admin/projects', label: 'المشاريع', en: 'Projects', icon: 'folder' },
+    { to: '/admin/prds', label: 'الوثائق', en: 'PRDs', icon: 'doc' },
+  ],
+  [
+    { to: '/admin/health', label: 'صحة النظام', en: 'System Health', icon: 'pulse' },
+    { to: '/admin/settings', label: 'الإعدادات', en: 'Settings', icon: 'gear' },
+  ],
 ]
 
 export function AdminShell() {
@@ -47,10 +58,39 @@ export function AdminShell() {
   const [compare, setCompare] = useState('previous')
   const [navOpen, setNavOpen] = useState(false)
   const [alertsOpen, setAlertsOpen] = useState(false)
+  const [customOpen, setCustomOpen] = useState(false)
+  const [customDraft, setCustomDraft] = useState({ from: '', to: '' })
+  const [customRange, setCustomRange] = useState(null)
 
-  const { metrics, loading, error, range, refresh } = useAnalytics(preset, compare)
+  const { metrics, loading, error, range, refresh } = useAnalytics(preset, compare, customRange)
+
+  const applyCustomRange = () => {
+    if (!customDraft.from || !customDraft.to) return
+    setCustomRange({ ...customDraft })
+    setCustomOpen(false)
+  }
+  const selectPreset = (id) => {
+    setCustomRange(null)
+    setPreset(id)
+    setCustomOpen(false)
+  }
   const insights = buildInsights(metrics)
   const urgent = insights.filter((i) => i.level !== 'good')
+
+  /* Downloads exactly what selectMetrics() computed for the visible
+     range — the same numbers on screen, not a second query. Nothing here
+     that isn't already privacy-safe: the payload has never carried an
+     email, a name, or a project title. */
+  const handleExport = () => {
+    if (!metrics) return
+    const blob = new Blob([JSON.stringify({ range, metrics }, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `areep-analytics-${range?.preset?.id ?? 'export'}.json`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <div className="ad" dir="rtl">
@@ -64,23 +104,28 @@ export function AdminShell() {
           <img src={LOGO_MARK_WHITE} alt="" width="24" height="27" />
           <span>
             أريب
-            <em>Command Center</em>
+            <em>Product Intelligence</em>
           </span>
         </div>
 
         <nav className="ad-nav" aria-label="أقسام اللوحة">
-          {NAV.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) => `ad-nav-item${isActive ? ' is-active' : ''}`}
-              onClick={() => setNavOpen(false)}
-            >
-              <NavIcon name={item.icon} />
-              <span className="ad-nav-label">{item.label}</span>
-              <span className="ad-nav-en">{item.en}</span>
-            </NavLink>
+          {NAV_GROUPS.map((group, gi) => (
+            <div key={gi} className="ad-nav-group">
+              {gi > 0 && <hr className="ad-nav-divider" />}
+              {group.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) => `ad-nav-item${isActive ? ' is-active' : ''}`}
+                  onClick={() => setNavOpen(false)}
+                >
+                  <NavIcon name={item.icon} />
+                  <span className="ad-nav-label">{item.label}</span>
+                  <span className="ad-nav-en">{item.en}</span>
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
 
@@ -105,14 +150,24 @@ export function AdminShell() {
               <button
                 key={p.id}
                 type="button"
-                className={`ad-range-btn${preset === p.id ? ' is-active' : ''}`}
-                onClick={() => setPreset(p.id)}
-                aria-pressed={preset === p.id}
+                className={`ad-range-btn${!customRange && preset === p.id ? ' is-active' : ''}`}
+                onClick={() => selectPreset(p.id)}
+                aria-pressed={!customRange && preset === p.id}
               >
                 {p.label}
               </button>
             ))}
+            <button
+              type="button"
+              className={`ad-range-btn${customRange ? ' is-active' : ''}`}
+              onClick={() => setCustomOpen((v) => !v)}
+              aria-expanded={customOpen}
+            >
+              مخصّص
+            </button>
           </div>
+
+
 
           <label className="ad-compare">
             <span className="ad-sr">المقارنة</span>
@@ -136,11 +191,37 @@ export function AdminShell() {
               <NavIcon name="bell" />
               {urgent.length > 0 && <b className="ad-badge">{urgent.length}</b>}
             </button>
+            <button
+              type="button"
+              className="ad-icon-btn"
+              onClick={handleExport}
+              aria-label="تصدير البيانات الحالية"
+              disabled={loading || !metrics}
+              title="تصدير المؤشرات المعروضة كملف JSON"
+            >
+              <NavIcon name="download" />
+            </button>
             <button type="button" className="ad-icon-btn" onClick={refresh} aria-label="تحديث البيانات" disabled={loading}>
               <NavIcon name="refresh" />
             </button>
           </div>
         </header>
+
+          {customOpen && (
+            <div className="ad-custom-range">
+              <label>
+                من
+                <input type="date" value={customDraft.from} onChange={(e) => setCustomDraft((d) => ({ ...d, from: e.target.value }))} />
+              </label>
+              <label>
+                إلى
+                <input type="date" value={customDraft.to} onChange={(e) => setCustomDraft((d) => ({ ...d, to: e.target.value }))} />
+              </label>
+              <button type="button" className="ad-btn" onClick={applyCustomRange} disabled={!customDraft.from || !customDraft.to}>
+                تطبيق
+              </button>
+            </div>
+          )}
 
         {alertsOpen && (
           <div className="ad-alerts-drop">
@@ -186,6 +267,7 @@ const PATHS = {
   menu: 'M4 7h16M4 12h16M4 17h16',
   bell: 'M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0',
   refresh: 'M21 12a9 9 0 1 1-3-6.7M21 3v6h-6',
+  download: 'M12 3v12M7 10l5 5 5-5M5 21h14',
 }
 
 function NavIcon({ name }) {

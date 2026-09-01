@@ -5,7 +5,7 @@ import { resolveRange } from './analytics/ranges'
 /* One fetch for the whole dashboard, owned by the shell and shared with
    every page through Outlet context. Sections read the same snapshot, so
    two pages can never show numbers computed seconds apart. */
-export function useAnalytics(presetId, compareMode) {
+export function useAnalytics(presetId, compareMode, customRange = null) {
   const [state, setState] = useState({ loading: true, metrics: null, error: null, range: null })
   const [nonce, setNonce] = useState(0)
 
@@ -13,7 +13,7 @@ export function useAnalytics(presetId, compareMode) {
 
   useEffect(() => {
     let active = true
-    const range = resolveRange(presetId, compareMode)
+    const range = resolveRange(presetId, compareMode, customRange)
     setState((prev) => ({ ...prev, loading: true, error: null, range }))
 
     fetchAnalytics(range).then(({ data, error }) => {
@@ -28,7 +28,7 @@ export function useAnalytics(presetId, compareMode) {
     return () => {
       active = false
     }
-  }, [presetId, compareMode, nonce])
+  }, [presetId, compareMode, customRange?.from, customRange?.to, nonce])
 
   return { ...state, refresh }
 }

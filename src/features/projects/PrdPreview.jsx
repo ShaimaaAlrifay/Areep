@@ -6,6 +6,7 @@ import { buildPrdMarkdown, triggerTextDownload } from '../../lib/prdMarkdown'
 import { mapPrdToDocumentData } from '../../lib/prdMapper'
 import { groupRequirementsByType, requirementsFromDiscoveryState } from '../../lib/requirementGroups'
 import { EVENTS, track } from '../../lib/analytics'
+import { PrdFeedback } from './PrdFeedback'
 import { getProjectPrd } from '../../services/projectsService'
 import { listRequirements } from '../../services/requirementsService'
 import { buildPRDBlob, countPdfPages, measureSectionPages, triggerPRDDownload } from '../../templates/areep/prdPdf'
@@ -248,6 +249,8 @@ export function PrdPreview() {
                 <span>{mapped?.meta?.date}</span>
               </p>
             </div>
+
+            <PrdFeedback projectId={projectId} />
           </aside>
         </div>
       )}

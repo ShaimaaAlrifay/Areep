@@ -160,6 +160,16 @@ begin
     from project_owner po join cohort c on c.user_id = po.user_id
     where po.prd_generated_at is not null
   ),
+  -- Mirrors `cohort`/`f_prd` one period back, so the KPI card has a real
+  -- previous value to diff against instead of `activationRate.change`
+  -- being permanently null. Only the final stage is needed here — the
+  -- comparison card shows one number, not a second funnel.
+  cohort_prev as (select id as user_id from signups_prev),
+  f_prd_prev as (
+    select distinct po.user_id
+    from project_owner po join cohort_prev c on c.user_id = po.user_id
+    where po.prd_generated_at is not null
+  ),
   -- ---------- engagement ----------
   msg_per_project as (
     select p.id, count(m.id) as n
@@ -227,6 +237,24 @@ begin
       (select count(*) from projects p where p.prd_generated_at >= d.d and p.prd_generated_at < d.d + interval '1 day') as prds
     from days d
   ),
+  -- ---------- activation rate, bucketed by signup day ----------
+  -- Same definition as f_prd above (did any project of theirs ever reach
+  -- a PRD, no time bound on when) — just grouped by the day someone
+  -- signed up instead of collapsed into one number for the whole range.
+  -- A cohort from yesterday has had less time to convert than one from
+  -- three weeks ago; that is an honest property of the chart; it is not
+  -- hidden, and no cohort is excluded to hide it.
+  activation_daily as (
+    select
+      to_char(d.d, 'YYYY-MM-DD') as day,
+      (select count(*) from auth.users u where u.created_at >= d.d and u.created_at < d.d + interval '1 day') as cohort_size,
+      (select count(distinct u.id)
+         from auth.users u
+         join project_owner po on po.user_id = u.id
+         where u.created_at >= d.d and u.created_at < d.d + interval '1 day'
+           and po.prd_generated_at is not null) as activated
+    from days d
+  ),
   -- ---------- AI operations ----------
   ai_cur as (
     select * from ai_events where created_at >= p_from and created_at < p_to
@@ -241,6 +269,72 @@ begin
       sum(input_tokens) as input_tokens,
       sum(output_tokens) as output_tokens
     from ai_cur group by provider
+  ),
+  -- ---------- PRD feedback (Quality section) ----------
+  -- submitted_at, not created_at: a row started but never finished (no
+  -- click on the final star-rating "إرسال التقييم") is not a completed
+  -- feedback and must not count toward satisfaction/reason percentages.
+  prd_feedback_cur as (
+    select * from prd_feedback where submitted_at is not null and submitted_at >= p_from and submitted_at < p_to
+  ),
+  prd_feedback_prev as (
+    select * from prd_feedback
+    where p_compare_from is not null and submitted_at is not null and submitted_at >= p_compare_from and submitted_at < p_compare_to
+  ),
+  -- Denominator for Feedback Response Rate (spec section 29): every PRD
+  -- that COULD have received feedback in this period, whether or not it
+  -- did. Absence of feedback is not the same as dissatisfaction, and this
+  -- is what lets the client say so instead of reading a low positive rate
+  -- as a low satisfaction rate.
+  eligible_prds_cur as (
+    select * from projects where prd_generated_at is not null and prd_generated_at >= p_from and prd_generated_at < p_to
+  ),
+  feedback_pos_reasons as (select unnest(positive_reasons) as reason from prd_feedback_cur),
+  feedback_neg_reasons as (select unnest(negative_reasons) as reason from prd_feedback_cur),
+  feedback_series as (
+    select
+      to_char(d.d, 'YYYY-MM-DD') as day,
+      count(pf.id) as responses,
+      round(avg(pf.rating) filter (where pf.rating is not null), 2) as avg_rating,
+      count(*) filter (where pf.sentiment = 'positive') as positive,
+      count(*) filter (where pf.sentiment = 'negative') as negative
+    from days d
+    left join prd_feedback pf on pf.submitted_at >= d.d and pf.submitted_at < d.d + interval '1 day'
+    group by d.d order by d.d
+  ),
+  -- ---------- recent activity feed (Overview only) ----------
+  -- Kind and a timestamp, nothing else. No user id, no project id, no
+  -- provider name tied to a specific failure — an owner recognising "a
+  -- PRD came in eight minutes ago" needs none of that, and the privacy
+  -- boundary this function has kept since it was written (counts, rates,
+  -- buckets, timestamps — never an identifier) does not get an exception
+  -- just because this feed reads chronologically instead of aggregated.
+  -- Limited to the last 20 across four kinds, newest first, capped to the
+  -- selected period so a wide range does not pull in ancient events.
+  recent_signups as (
+    select 'signup'::text as kind, created_at from signups
+  ),
+  recent_projects as (
+    select 'project'::text as kind, created_at from projects_cur
+  ),
+  recent_prds as (
+    -- prd_generated_at, not created_at — the event this row represents
+    -- is the PRD being generated, which can happen long after the
+    -- project itself was created.
+    select 'prd'::text as kind, prd_generated_at as created_at from prds_cur
+  ),
+  recent_fallbacks as (
+    select 'fallback'::text as kind, created_at from ai_cur where ok and attempt > 0
+  ),
+  recent_activity as (
+    select kind, created_at from (
+      select * from recent_signups
+      union all select * from recent_projects
+      union all select * from recent_prds
+      union all select * from recent_fallbacks
+    ) all_events
+    order by created_at desc
+    limit 20
   )
   select jsonb_build_object(
     'range', jsonb_build_object('from', p_from, 'to', p_to,
@@ -264,7 +358,18 @@ begin
       'projectsCreatedPrevious', case when p_compare_from is null then null else (select count(*) from projects_prev) end,
       'prdsGenerated', (select count(*) from prds_cur),
       'prdsGeneratedPrevious', case when p_compare_from is null then null else (select count(*) from prds_prev) end,
-      'prdsBeforeTracking', (select count(*) from projects where prd_data is not null and prd_generated_at is null)
+      'prdsBeforeTracking', (select count(*) from projects where prd_data is not null and prd_generated_at is null),
+      -- null unless a compare period is selected AND the previous cohort
+      -- had at least one signup — a rate over zero people is not a rate.
+      'activationRatePrevious', case
+        when p_compare_from is null then null
+        when (select count(*) from signups_prev) = 0 then null
+        else round(100.0 * (select count(*) from f_prd_prev) / (select count(*) from signups_prev), 1)
+      end,
+      'dailyRate', coalesce((select jsonb_agg(jsonb_build_object(
+          'day', day, 'cohortSize', cohort_size,
+          'rate', case when cohort_size = 0 then null else round(100.0 * activated / cohort_size, 1) end
+        ) order by day) from activation_daily), '[]'::jsonb)
     ),
 
     'engagement', jsonb_build_object(
@@ -304,6 +409,9 @@ begin
     'series', coalesce((select jsonb_agg(jsonb_build_object(
         'day', day, 'signups', signups, 'projects', projects, 'prds', prds) order by day) from series), '[]'::jsonb),
 
+    'recentActivity', coalesce((select jsonb_agg(jsonb_build_object(
+        'kind', kind, 'at', created_at) order by created_at desc) from recent_activity), '[]'::jsonb),
+
     -- Absent entirely when no telemetry has been recorded yet, so the
     -- client shows "collecting" rather than a page of confident zeroes.
     'ai', case when not has_ai_events then null else jsonb_build_object(
@@ -319,7 +427,46 @@ begin
       'recentFailures', coalesce((select jsonb_agg(jsonb_build_object(
           'at', created_at, 'kind', kind, 'provider', provider, 'error', left(error, 120)) order by created_at desc)
         from (select * from ai_cur where not ok order by created_at desc limit 5) rf), '[]'::jsonb)
-    ) end
+    ) end,
+
+    -- Unlike `ai` above, this is never nulled out for "no rows yet" — zero
+    -- submitted feedback is a real, sayable zero (the feature exists, no
+    -- one has used it yet), not a "not tracked" gap. Every field here is a
+    -- count, an enum label, or a rounded average — never `comment`, which
+    -- stays in prd_feedback for the row's own owner to read, and never
+    -- reaches this security-definer aggregate at all.
+    'feedback', jsonb_build_object(
+      'totalSubmitted', (select count(*) from prd_feedback_cur),
+      'totalSubmittedPrevious', case when p_compare_from is null then null else (select count(*) from prd_feedback_prev) end,
+      'eligiblePrds', (select count(*) from eligible_prds_cur),
+      'responseRate', (
+        select case when (select count(*) from eligible_prds_cur) = 0 then null
+          else round(100.0 * (select count(*) from prd_feedback_cur) / (select count(*) from eligible_prds_cur), 1) end
+      ),
+      'sentiment', jsonb_build_object(
+        'positive', (select count(*) filter (where sentiment = 'positive') from prd_feedback_cur),
+        'negative', (select count(*) filter (where sentiment = 'negative') from prd_feedback_cur)
+      ),
+      'avgRating', (select round(avg(rating), 2) from prd_feedback_cur where rating is not null),
+      'ratingSampleSize', (select count(*) from prd_feedback_cur where rating is not null),
+      'ratingDistribution', coalesce((select jsonb_agg(jsonb_build_object('stars', r, 'count', c) order by r)
+        from (select rating r, count(*) c from prd_feedback_cur where rating is not null group by rating) rd), '[]'::jsonb),
+      'positiveReasons', coalesce((select jsonb_agg(jsonb_build_object('reason', reason, 'count', c) order by c desc)
+        from (select reason, count(*) c from feedback_pos_reasons group by reason) pr), '[]'::jsonb),
+      'negativeReasons', coalesce((select jsonb_agg(jsonb_build_object('reason', reason, 'count', c) order by c desc)
+        from (select reason, count(*) c from feedback_neg_reasons group by reason) nr), '[]'::jsonb),
+      'requirementAccuracy', coalesce((select jsonb_agg(jsonb_build_object('value', requirement_accuracy, 'count', c) order by c desc)
+        from (select requirement_accuracy, count(*) c from prd_feedback_cur where requirement_accuracy is not null group by requirement_accuracy) ra), '[]'::jsonb),
+      'requirementCompleteness', coalesce((select jsonb_agg(jsonb_build_object('value', requirement_completeness, 'count', c) order by c desc)
+        from (select requirement_completeness, count(*) c from prd_feedback_cur where requirement_completeness is not null group by requirement_completeness) rc), '[]'::jsonb),
+      'editLevel', coalesce((select jsonb_agg(jsonb_build_object('value', edit_level, 'count', c) order by c desc)
+        from (select edit_level, count(*) c from prd_feedback_cur where edit_level is not null group by edit_level) el), '[]'::jsonb),
+      'valueRating', coalesce((select jsonb_agg(jsonb_build_object('value', value_rating, 'count', c) order by c desc)
+        from (select value_rating, count(*) c from prd_feedback_cur where value_rating is not null group by value_rating) vr), '[]'::jsonb),
+      'series', coalesce((select jsonb_agg(jsonb_build_object(
+          'day', day, 'responses', responses, 'avgRating', avg_rating, 'positive', positive, 'negative', negative) order by day)
+        from feedback_series), '[]'::jsonb)
+    )
   ) into result;
 
   return result;

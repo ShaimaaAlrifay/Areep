@@ -18,7 +18,6 @@ import { metric, notTracked } from './metric'
 export const REASONS = {
   NO_WEB_ANALYTICS: 'يحتاج مزوّد تحليلات — VITE_ANALYTICS_URL غير مضبوط، وواجهة الأحداث لا ترسل شيئًا حاليًا.',
   NO_BILLING: 'لا يوجد نظام فوترة في المنتج بعد — لا اشتراكات ولا مدفوعات لتُقاس.',
-  NO_FEEDBACK: 'لا توجد آلية تقييم للوثائق بعد (لا 👍/👎 في الواجهة).',
   NO_ACCURACY: 'لا توجد طريقة حقيقية لقياس دقة الوثيقة — أي رقم هنا سيكون مُختلقًا.',
   NO_PRD_HISTORY: 'إعادة التوليد تستبدل الوثيقة السابقة، فلا يوجد تاريخ إصدارات لحسابها.',
   COLLECTING: 'التتبّع مُفعّل، لكن ما وصلت بيانات كافية بعد.',
@@ -91,6 +90,19 @@ function mergeBuckets(rows) {
   return [...out].map(([bucket, count]) => ({ bucket, count }))
 }
 
+/* Below this sample size, a KPI card still shows the real number but adds
+   a hedge — not a separate "unreliable" state, just a note, since the
+   number itself is not wrong, only thin. */
+const MIN_RELIABLE_FEEDBACK_SAMPLE = 10
+const limitedSampleNote = (n) => (n !== null && n !== undefined && n < MIN_RELIABLE_FEEDBACK_SAMPLE ? 'عيّنة محدودة — احذر الاستنتاج المبكر.' : null)
+
+/* `{reason|value, count}` rows from admin_analytics() → BarList's
+   `{key, label, value}` shape. Label resolution happens at render time in
+   Quality.jsx via prdFeedbackOptions.labelFor, so this file stays a pure
+   passthrough of counts (same "nothing invented" boundary as the rest of
+   this selector). */
+const toCounts = (rows, field) => (rows ?? []).map((r) => ({ key: r[field], count: Number(r.count ?? 0) }))
+
 /** Raw payload → the metric shape every component reads. */
 export function selectMetrics(raw) {
   if (!raw) return null
@@ -100,6 +112,7 @@ export function selectMetrics(raw) {
   const q = raw.quality ?? {}
   const ret = raw.retention ?? {}
   const ai = raw.ai ?? null
+  const fb = raw.feedback ?? {}
   /* Coerced once and compared numerically. A bare truthiness check would
      treat the string "0" as a live request count and divide by it. */
   const aiRequests = ai ? Number(ai.requests ?? 0) : 0
@@ -157,7 +170,20 @@ export function selectMetrics(raw) {
         ? `${act.prdsBeforeTracking} وثيقة أُنشئت قبل بدء تتبّع وقت التوليد، وليست ضمن هذه الفترة.`
         : null,
     }),
-    activationRate: metric({ value: activationRate, sampleSize: signups }),
+    activationRate: metric({
+      value: activationRate,
+      previousValue: num(act.activationRatePrevious),
+      sampleSize: signups,
+    }),
+    /* Per-day signup cohorts and whether they've reached a PRD yet — same
+       definition as the funnel's last stage, just bucketed by day. Days
+       with no signups (cohortSize 0) carry a null rate rather than 0, so
+       an empty day doesn't plot as "nobody converted". */
+    activationDaily: (act.dailyRate ?? []).map((d) => ({
+      day: d.day,
+      cohortSize: Number(d.cohortSize ?? 0),
+      rate: d.rate === null || d.rate === undefined ? null : Number(d.rate),
+    })),
     funnel,
 
     // ---- engagement ----
@@ -176,9 +202,37 @@ export function selectMetrics(raw) {
       note: 'نسبة المتطلبات التي عدّلها المستخدم قبل التوليد.',
     }),
     requirementsUserAdded: metric({ value: num(q.requirementsUserAdded) }),
-    feedback: notTracked(REASONS.NO_FEEDBACK),
     prdAccuracy: notTracked(REASONS.NO_ACCURACY),
     regenerationRate: notTracked(REASONS.NO_PRD_HISTORY),
+
+    // ---- PRD feedback (real, once submitted — see admin_analytics()'s
+    // `feedback` key, always present with real zeroes, never notTracked) ----
+    feedbackTotal: metric({ value: num(fb.totalSubmitted), previousValue: num(fb.totalSubmittedPrevious) }),
+    feedbackResponseRate: metric({ value: num(fb.responseRate), sampleSize: num(fb.eligiblePrds) }),
+    feedbackPositiveRate:
+      num(fb.totalSubmitted) > 0
+        ? metric({ value: (Number(fb.sentiment?.positive ?? 0) / Number(fb.totalSubmitted)) * 100, sampleSize: num(fb.totalSubmitted) })
+        : notTracked(REASONS.COLLECTING),
+    feedbackNegativeRate:
+      num(fb.totalSubmitted) > 0
+        ? metric({
+            value: (Number(fb.sentiment?.negative ?? 0) / Number(fb.totalSubmitted)) * 100,
+            sampleSize: num(fb.totalSubmitted),
+            lowerIsBetter: true,
+          })
+        : notTracked(REASONS.COLLECTING),
+    feedbackAvgRating:
+      num(fb.ratingSampleSize) > 0
+        ? metric({ value: num(fb.avgRating), sampleSize: num(fb.ratingSampleSize), note: limitedSampleNote(fb.ratingSampleSize) })
+        : notTracked(REASONS.COLLECTING),
+    feedbackRatingDistribution: (fb.ratingDistribution ?? []).map((r) => ({ key: r.stars, count: Number(r.count ?? 0) })),
+    positiveReasons: toCounts(fb.positiveReasons, 'reason'),
+    negativeReasons: toCounts(fb.negativeReasons, 'reason'),
+    requirementAccuracyFeedback: toCounts(fb.requirementAccuracy, 'value'),
+    requirementCompletenessFeedback: toCounts(fb.requirementCompleteness, 'value'),
+    editLevelFeedback: toCounts(fb.editLevel, 'value'),
+    valueRatingFeedback: toCounts(fb.valueRating, 'value'),
+    feedbackSeries: fb.series ?? [],
 
     // ---- retention ----
     d1: cohorts.length ? metric({ value: weighted('d1') }) : notTracked(REASONS.COLLECTING),
@@ -216,6 +270,21 @@ export function selectMetrics(raw) {
           }),
           inputTokens: ai.inputTokens === null ? notTracked('المزوّد لم يُبلّغ عن عدد التوكينز.') : metric({ value: num(ai.inputTokens) }),
           outputTokens: ai.outputTokens === null ? notTracked('المزوّد لم يُبلّغ عن عدد التوكينز.') : metric({ value: num(ai.outputTokens) }),
+          /* Success is just 1 - errorRate, but the KPI strip shows both
+             because an owner scanning for "is this fine?" reads a rate
+             framed as success faster than one framed as failure. Derived
+             from errorRate rather than recomputed, so the two can never
+             disagree. */
+          successRate: ai.requests
+            ? metric({ value: 100 - ((Number(ai.failed) / Number(ai.requests)) * 100), sampleSize: num(ai.requests) })
+            : metric({ value: null }),
+          totalTokens:
+            ai.inputTokens === null
+              ? notTracked('المزوّد لم يُبلّغ عن عدد التوكينز.')
+              : metric({
+                  value: Number(ai.inputTokens) + (ai.outputTokens === null ? 0 : Number(ai.outputTokens)),
+                  note: ai.outputTokens === null ? 'يشمل المدخلات فقط — المخرجات غير مُبلَّغة.' : null,
+                }),
           /* Cost stays untracked until a price per model is configured —
              tokens alone are not money, and guessing a rate would put an
              invented dollar figure on the page. */
@@ -239,5 +308,11 @@ export function selectMetrics(raw) {
     projectTypes: raw.projects?.byType ?? [],
     confidenceBuckets: mergeBuckets(raw.projects?.confidenceBuckets ?? []),
     totalProjects: metric({ value: num(raw.projects?.total) }),
+
+    /* A feed, not a metric — kept outside metric()/notTracked() because
+       there is nothing to compare it against and no unit to format. Every
+       row is `{ kind, at }` and nothing else; the SQL side already refuses
+       to attach an id, an email, or a project name to any of it. */
+    recentActivity: (raw.recentActivity ?? []).map((e) => ({ kind: e.kind, at: e.at })),
   }
 }

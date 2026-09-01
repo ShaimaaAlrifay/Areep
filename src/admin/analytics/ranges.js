@@ -15,10 +15,29 @@ export const COMPARE_MODES = [
   { id: 'none', label: 'بدون مقارنة' },
 ]
 
-export function resolveRange(presetId, compareMode) {
-  const preset = PRESETS.find((p) => p.id === presetId) ?? PRESETS[2]
-  const to = new Date()
-  const from = new Date(to.getTime() - preset.days * 86400000)
+/**
+ * @param {string} presetId one of PRESETS, ignored when `custom` is set
+ * @param {string} compareMode one of COMPARE_MODES
+ * @param {{from: string, to: string}|null} custom two yyyy-mm-dd values —
+ *   `to` is treated as inclusive (end of that day), matching how a date
+ *   picker reads to an owner, then converted to the half-open bound the
+ *   query actually needs.
+ */
+export function resolveRange(presetId, compareMode, custom = null) {
+  let preset
+  let from
+  let to
+
+  if (custom?.from && custom?.to) {
+    from = new Date(`${custom.from}T00:00:00`)
+    to = new Date(new Date(`${custom.to}T00:00:00`).getTime() + 86400000)
+    const days = Math.max(1, Math.round((to.getTime() - from.getTime()) / 86400000))
+    preset = { id: 'custom', label: 'مخصّص', days }
+  } else {
+    preset = PRESETS.find((p) => p.id === presetId) ?? PRESETS[2]
+    to = new Date()
+    from = new Date(to.getTime() - preset.days * 86400000)
+  }
 
   let compareFrom = null
   let compareTo = null

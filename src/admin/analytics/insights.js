@@ -109,6 +109,56 @@ export function buildInsights(metrics) {
     .slice(0, 5)
 }
 
+import { labelFor, NEGATIVE_REASONS } from '../../lib/prdFeedbackOptions'
+
+const MIN_FEEDBACK_FOR_INSIGHTS = 5
+
+/**
+ * "ماذا نتعلم من التقييمات؟" (spec §17) — Quality-page-local, not the
+ * cross-page "needs attention" panel above (that one links elsewhere;
+ * these sentences are about feedback itself, so a "go to X page" link
+ * would be artificial). Every sentence is computed directly from counts
+ * already in `metrics`, always hedged ("قد يشير ذلك إلى..."), never a
+ * fabricated cause — the same discipline `buildInsights` follows above.
+ */
+export function buildFeedbackInsights(metrics) {
+  const total = metrics?.feedbackTotal?.value ?? 0
+  if (total < MIN_FEEDBACK_FOR_INSIGHTS) return { available: false, items: [] }
+
+  const items = []
+
+  const negativeReasons = metrics?.negativeReasons ?? []
+  const negativeTotal = negativeReasons.reduce((s, r) => s + r.count, 0)
+  const topNegative = [...negativeReasons].sort((a, b) => b.count - a.count)[0]
+  if (topNegative && negativeTotal > 0) {
+    const share = (topNegative.count / negativeTotal) * 100
+    items.push({
+      id: 'top-negative-reason',
+      text: `أكثر سبب للتقييم السلبي هو "${labelFor(NEGATIVE_REASONS, topNegative.key)}" — ${share.toFixed(0)}٪ من التقييمات السلبية ذكرته.`,
+      hedge:
+        topNegative.key === 'missing_requirements'
+          ? 'قد يشير ذلك إلى حاجة لمراجعة مرحلة Discovery.'
+          : 'قد يشير ذلك إلى فرصة لتحسين هذا الجانب تحديدًا.',
+    })
+  }
+
+  const completeness = metrics?.requirementCompletenessFeedback ?? []
+  const completenessTotal = completeness.reduce((s, r) => s + r.count, 0)
+  const incomplete = completeness
+    .filter((r) => r.key === 'slightly_incomplete' || r.key === 'clearly_incomplete')
+    .reduce((s, r) => s + r.count, 0)
+  if (completenessTotal > 0 && incomplete > 0) {
+    const share = (incomplete / completenessTotal) * 100
+    items.push({
+      id: 'completeness-gap',
+      text: `${share.toFixed(0)}٪ من التقييمات ذكرت أن المتطلبات كانت ناقصة (قليلًا أو بشكل واضح).`,
+      hedge: 'قد يشير ذلك إلى حاجة لتوسيع تغطية جلسة الاكتشاف قبل توليد الوثيقة.',
+    })
+  }
+
+  return { available: items.length > 0, items }
+}
+
 /* System health (§13): a status per subsystem, tied to real signals only.
    "unknown" is a first-class state — a subsystem with no telemetry is not
    healthy, it is unmeasured, and saying otherwise would be a false all-clear. */

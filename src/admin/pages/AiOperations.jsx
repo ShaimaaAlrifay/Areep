@@ -1,9 +1,22 @@
 import { KpiCard } from '../components/KpiCard'
 import { BarList } from '../components/charts'
+import { FallbackDiagram } from '../components/FallbackDiagram'
 import { EmptyState, NotTracked, StatusPill } from '../components/states'
 import { DataGate, Panel, Section, useAdminData } from '../components/Section'
 import { formatValue } from '../analytics/metric'
 import { formatRelativeDate } from '../../lib/constants'
+
+/* Same tier the provider table below judges each row by — reused rather
+   than re-guessed, so the headline status and the per-provider pills in
+   the table can never contradict each other. */
+function aiHealthTier(errorRate) {
+  if (errorRate === null) return null
+  if (errorRate >= 20) return 'critical'
+  if (errorRate >= 5) return 'warning'
+  return 'healthy'
+}
+
+const TIER_LABEL = { healthy: 'مستقر', warning: 'يحتاج مراجعة', critical: 'حرج' }
 
 /* ============================================================
    The engine room: every model call the product makes, as it actually
@@ -18,10 +31,21 @@ import { formatRelativeDate } from '../../lib/constants'
 export function AiOperations() {
   const { metrics, loading, error, refresh } = useAdminData()
   const ai = metrics?.ai
+  const tier = ai?.available ? aiHealthTier(ai.errorRate.value) : null
 
   return (
     <DataGate error={error} refresh={refresh}>
       <Section title="عمليات الذكاء الاصطناعي" en="AI Operations" purpose="صحة المزوّدين، نسبة الفشل، والمسار البديل.">
+        {!loading && ai?.available && tier && (
+          <div className={`ad-ai-health is-${tier}`}>
+            <span className="ad-ai-health-label">AI Health</span>
+            <span className={`ad-ai-health-pill is-${tier}`}>
+              <i aria-hidden="true" />
+              {TIER_LABEL[tier]}
+            </span>
+          </div>
+        )}
+
         {!loading && ai && !ai.available ? (
           <Panel>
             <NotTracked
@@ -32,11 +56,17 @@ export function AiOperations() {
         ) : (
           <>
             <div className="ad-kpi-grid">
-              <KpiCard label="عدد الاستدعاءات" en="Requests" metric={ai?.requests} loading={loading} />
+              <KpiCard label="عدد الاستدعاءات" en="Total Requests" metric={ai?.requests} loading={loading} />
+              <KpiCard label="نسبة النجاح" en="Success Rate" kind="percent" metric={ai?.successRate} loading={loading} />
               <KpiCard label="نسبة الفشل" en="Error Rate" kind="percent" metric={ai?.errorRate} loading={loading} />
               <KpiCard label="نسبة المسار البديل" en="Fallback Rate" kind="percent" metric={ai?.fallbackRate} loading={loading} />
+              <KpiCard label="إجمالي التوكينز" en="Total Tokens" metric={ai?.totalTokens} loading={loading} />
               <KpiCard label="تكلفة الوثيقة" en="Cost / PRD" kind="money" metric={ai?.costPerPrd} loading={loading} />
             </div>
+
+            <Panel title="المسار الأساسي والبديل" hint="من يخدم الطلب أولًا، ومتى يتدخّل المسار البديل.">
+              <FallbackDiagram ai={ai} />
+            </Panel>
 
             <div className="ad-grid-2">
               <Panel title="حسب المزوّد" hint="نسبة النجاح ومتوسط زمن الاستجابة لكل مزوّد.">

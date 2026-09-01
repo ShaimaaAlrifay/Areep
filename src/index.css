@@ -1500,6 +1500,135 @@ button:focus-visible {
   font-weight: 500;
 }
 
+/* ============================================================
+   PRD feedback (post-generation quality signal, spec section 01-09) —
+   a quiet inline panel, never a modal. Same border-top-separated block
+   rhythm as .prd-meta-block above, small type, no shadows/gradients.
+   ============================================================ */
+.prd-feedback {
+  margin-block-start: var(--space-4);
+  padding-block-start: var(--space-3);
+  border-block-start: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.prd-feedback-prompt {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.prd-feedback-question {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.prd-feedback-thumbs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.prd-feedback-thumb {
+  text-align: right;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: 13px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.prd-feedback-thumb:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-strong);
+}
+
+.prd-feedback-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.prd-feedback-options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.prd-feedback-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.prd-feedback-option:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.prd-feedback-option.is-selected {
+  background: var(--color-accent-subtle);
+  color: var(--color-text);
+}
+
+.prd-feedback-comment {
+  width: 100%;
+  min-height: 64px;
+  resize: vertical;
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  font: inherit;
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.prd-feedback-comment:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.prd-feedback-stars {
+  display: flex;
+  gap: var(--space-1);
+  font-size: 20px;
+}
+
+.prd-feedback-star {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-border-strong);
+  line-height: 1;
+}
+
+.prd-feedback-star.is-filled {
+  color: var(--color-accent);
+}
+
+.prd-feedback-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.prd-feedback-done {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
 @media (max-width: 859px) {
   .prd-preview {
     grid-template-columns: 1fr;

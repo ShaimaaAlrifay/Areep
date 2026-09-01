@@ -219,6 +219,26 @@
 }
 .ad-nav-toggle { display: none; }
 
+.ad-custom-range {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--ad-gutter);
+  background: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border);
+}
+.ad-custom-range label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--color-text-muted); }
+.ad-custom-range input {
+  font: inherit;
+  font-size: 12.5px;
+  padding: 6px 10px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color-scheme: dark;
+}
+
 .ad-alerts-drop {
   position: sticky;
   top: var(--ad-topbar);
@@ -283,6 +303,7 @@
 .ad-grid-2 > *,
 .ad-kpi-grid > *,
 .ad-stat-row > *,
+.ad-mini-row > *,
 .ad-insight-grid > * { min-width: 0; }
 .ad-table-scroll { max-width: 100%; }
 
@@ -410,6 +431,19 @@
 }
 .ad-insight-action:hover { text-decoration: underline; }
 
+/* Quality page: a note inside a panel's body (not its header — see
+   .ad-panel-head p above), used to separate a system-computed metric from
+   an adjacent self-reported one so the two are never read as the same
+   number. Same visual weight as .ad-kpi-hint. */
+.ad-panel-note { margin: var(--space-2) 0; font-size: 11.5px; color: var(--color-text-muted); line-height: 1.55; }
+
+/* "ماذا نتعلم من التقييمات؟" — plain computed sentences, not insight
+   cards (those link elsewhere; these are page-local observations). */
+.ad-quality-insights { display: flex; flex-direction: column; gap: var(--space-3); list-style: none; padding: 0; margin: 0; }
+.ad-quality-insights li { padding-inline-start: var(--space-3); border-inline-start: 2px solid var(--color-border-strong); }
+.ad-quality-insights p { margin: 0; font-size: 13px; color: var(--color-text); line-height: 1.6; }
+.ad-quality-insights p.ad-quality-insight-hedge { margin-top: 4px; font-size: 12px; color: var(--color-text-muted); }
+
 /* ---------------------------------------------------------- */
 /* charts                                                      */
 /* ---------------------------------------------------------- */
@@ -503,6 +537,9 @@
 
 .ad-checklist, .ad-rules { margin: 0; padding-inline-start: 1.2em; display: grid; gap: var(--space-2); font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.7; }
 .ad-note { margin: var(--space-4) 0 0; font-size: 11.5px; color: var(--color-text-muted); line-height: 1.65; }
+.ad-definition { margin: var(--space-4) 0 0; padding-top: var(--space-4); border-top: 1px solid var(--color-border); font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.75; max-width: 80ch; }
+.ad-definition strong { color: var(--color-text); font-weight: 600; }
+.ad-chart-note { margin: var(--space-2) 0 0; font-size: 11px; color: var(--color-text-muted); }
 .ad code { font-family: var(--font-mono, ui-monospace, monospace); font-size: 0.92em; padding: 1px 5px; border-radius: 4px; background: var(--color-bg-subtle); direction: ltr; display: inline-block; }
 
 .ad-btn {
@@ -597,4 +634,162 @@
 @media (prefers-reduced-motion: reduce) {
   .ad-skeleton { animation: none; }
   .ad-sidebar { transition: none; }
+}
+
+/* ============================================================
+   Product Intelligence additions — health banner, growth toggle,
+   condensed mini-panels, activity feed, fallback diagram.
+   ============================================================ */
+
+/* ---- product health banner ---- */
+.ad-health-banner {
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--ad-radius);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border-inline-start: 3px solid var(--color-border-strong);
+}
+.ad-health-banner.is-loading { min-height: 74px; }
+.ad-health-banner.is-healthy { border-inline-start-color: var(--ad-pos); }
+.ad-health-banner.is-watch { border-inline-start-color: var(--ad-warn); }
+.ad-health-banner.is-critical { border-inline-start-color: var(--ad-neg); background: color-mix(in srgb, var(--ad-neg) 6%, var(--color-surface)); }
+.ad-health-banner.is-insufficient { border-inline-start-color: var(--color-border-strong); }
+
+.ad-health-banner-top { display: flex; align-items: center; gap: var(--space-3); }
+.ad-health-banner-label { font-size: 11px; letter-spacing: 0.04em; color: var(--color-text-muted); }
+.ad-health-banner-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.ad-health-banner-pill i { width: 8px; height: 8px; border-radius: 99px; background: currentColor; }
+.ad-health-banner-pill.is-healthy { color: var(--ad-pos); }
+.ad-health-banner-pill.is-watch { color: var(--ad-warn); }
+.ad-health-banner-pill.is-critical { color: var(--ad-neg); }
+.ad-health-banner-pill.is-insufficient { color: var(--color-text-muted); }
+.ad-health-banner-summary { margin: 8px 0 0; font-size: 13.5px; color: var(--color-text-secondary); line-height: 1.7; max-width: 80ch; }
+
+/* ---- AI Operations page-local health line ---- */
+.ad-ai-health { display: inline-flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
+.ad-ai-health-label { font-family: var(--font-display, inherit); font-size: 11px; letter-spacing: 0.05em; color: var(--color-text-muted); text-transform: uppercase; }
+.ad-ai-health-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; }
+.ad-ai-health-pill i { width: 7px; height: 7px; border-radius: 99px; background: currentColor; }
+.ad-ai-health-pill.is-healthy { color: var(--ad-pos); }
+.ad-ai-health-pill.is-warning { color: var(--ad-warn); }
+.ad-ai-health-pill.is-critical { color: var(--ad-neg); }
+
+/* ---- growth chart toggle ---- */
+.ad-growth-toggle { display: inline-flex; gap: 2px; padding: 3px; margin-bottom: var(--space-4); background: var(--color-bg-subtle); border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
+.ad-growth-toggle-btn {
+  padding: 6px 16px;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.ad-growth-toggle-btn:hover { color: var(--color-text); }
+.ad-growth-toggle-btn.is-active { background: var(--color-surface); color: var(--color-text); box-shadow: var(--shadow-sm); }
+
+/* ---- panel drill-down link ---- */
+.ad-panel-link {
+  display: inline-block;
+  margin-top: var(--space-4);
+  font-size: 12px;
+  color: var(--color-accent-text);
+  text-decoration: none;
+}
+.ad-panel-link:hover { text-decoration: underline; }
+
+/* ---- overview mini-summary row ---- */
+.ad-mini-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+.ad-mini-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--ad-radius);
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+  transition: border-color 0.14s ease, background 0.14s ease;
+}
+.ad-mini-panel:hover { border-color: var(--color-border-strong); background: var(--color-surface-hover); }
+.ad-mini-head { display: flex; align-items: baseline; gap: var(--space-2); }
+.ad-mini-head h3 { margin: 0; font-size: 13px; font-weight: 600; }
+.ad-mini-head span { font-size: 9.5px; color: var(--color-text-muted); letter-spacing: 0.03em; }
+.ad-mini-body { display: flex; gap: var(--space-6); }
+.ad-mini-stat { display: flex; flex-direction: column; gap: 2px; }
+.ad-mini-stat strong { font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ad-mini-stat-label { font-size: 11px; color: var(--color-text-muted); }
+.ad-mini-stat-change { font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.ad-mini-stat.is-muted strong { color: var(--color-text-muted); font-weight: 500; }
+.ad-mini-empty { margin: 0; font-size: 11.5px; color: var(--color-text-muted); line-height: 1.6; }
+.ad-mini-link { position: absolute; inset-block-start: var(--space-4); inset-inline-start: var(--space-4); font-size: 12px; color: var(--color-text-muted); }
+
+/* ---- recent activity feed ---- */
+.ad-activity { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.ad-activity-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 12.5px;
+}
+.ad-activity-row:last-child { border-bottom: 0; }
+.ad-activity-dot { flex: none; width: 7px; height: 7px; border-radius: 99px; background: var(--color-text-muted); }
+.ad-activity-dot.is-signup { background: var(--color-accent); }
+.ad-activity-dot.is-project { background: var(--ad-pos); }
+.ad-activity-dot.is-prd { background: var(--color-accent); }
+.ad-activity-dot.is-fallback { background: var(--ad-warn); }
+.ad-activity-label { color: var(--color-text); }
+.ad-activity-time { margin-inline-start: auto; color: var(--color-text-muted); font-size: 11px; white-space: nowrap; }
+
+/* ---- fallback diagram ---- */
+.ad-fallback-diagram { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); padding: var(--space-4) 0; }
+.ad-fallback-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 150px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-subtle);
+  text-align: center;
+}
+.ad-fallback-node-label { font-size: 11px; color: var(--color-text-muted); }
+.ad-fallback-node strong { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ad-fallback-node-sub { font-size: 10.5px; color: var(--color-text-muted); }
+.ad-fallback-arrow { color: var(--color-border-strong); }
+.ad-fallback-split { display: flex; gap: var(--space-4); }
+.ad-fallback-direct { border-color: color-mix(in srgb, var(--ad-pos) 35%, var(--color-border)); }
+.ad-fallback-served { border-color: color-mix(in srgb, var(--ad-warn) 45%, var(--color-border)); }
+
+/* ---- sidebar section dividers ----
+   .ad-nav-group must re-declare the flex/gap that grouping the markup
+   took away from .ad-nav's direct children — without it, the 2px rhythm
+   between items only survives between the three group wrappers, and
+   items inside a group collapse back to their block default spacing. */
+.ad-nav-group { display: flex; flex-direction: column; gap: 2px; }
+.ad-nav-divider { height: 1px; margin: var(--space-2) var(--space-3) var(--space-3); background: var(--color-border); border: 0; }
+
+@media (max-width: 900px) {
+  .ad-mini-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px) {
+  .ad-mini-body { gap: var(--space-4); }
+  .ad-fallback-split { flex-direction: column; width: 100%; }
+  .ad-fallback-node { width: 100%; min-width: 0; }
+  .ad-health-banner-top { flex-wrap: wrap; }
 }
