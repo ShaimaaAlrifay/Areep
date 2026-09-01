@@ -33,6 +33,12 @@ export const EVENTS = {
   PROJECT_CREATED: 'project_created',
   PRD_GENERATED: 'prd_generated',
   PRD_EXPORTED: 'prd_exported',
+  PRD_FEEDBACK_OPENED: 'prd_feedback_opened',
+  PRD_FEEDBACK_POSITIVE: 'prd_feedback_positive',
+  PRD_FEEDBACK_NEGATIVE: 'prd_feedback_negative',
+  PRD_FEEDBACK_REASON_SELECTED: 'prd_feedback_reason_selected',
+  PRD_FEEDBACK_COMMENT_ADDED: 'prd_feedback_comment_added',
+  PRD_FEEDBACK_SUBMITTED: 'prd_feedback_submitted',
 }
 
 /**

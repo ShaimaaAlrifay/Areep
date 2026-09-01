@@ -30,4 +30,4 @@ export const INDEXABLE_ROUTES = [
 ]
 
 /** Prefixes robots.txt disallows and <Seo> marks noindex. */
-export const DISALLOWED_PATHS = ['/chat', '/forgot-password', '/reset-password']
+export const DISALLOWED_PATHS = ['/chat', '/admin', '/forgot-password', '/reset-password']

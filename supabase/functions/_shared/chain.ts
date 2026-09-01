@@ -59,8 +59,42 @@ export class Deadline {
  * surfaced to the caller, matching the original routes' rule of never
  * leaking a provider error to the client.
  */
-export async function runChain<T>(attempts: Attempt<T>[], deadline: Deadline, tag: string): Promise<T> {
+/* Called once per attempt that actually ran. Every provider call in the
+   product passes through this function, so instrumenting here — rather
+   than in each handler — is what keeps the telemetry from drifting out of
+   sync with the chain it is supposed to describe. The callback is
+   deliberately synchronous and its errors are swallowed: observing a call
+   must never be able to fail it. */
+export interface AttemptOutcome {
+  label: string
+  /** Position in the chain: 0 is the primary, above that is a fallback. */
+  index: number
+  ok: boolean
+  durationMs: number
+  error?: string
+}
+
+export async function runChain<T>(
+  attempts: Attempt<T>[],
+  deadline: Deadline,
+  tag: string,
+  onAttempt?: (outcome: AttemptOutcome) => void,
+): Promise<T> {
   let lastError: unknown = new Error('no attempts were configured')
+
+  const observe = (outcome: AttemptOutcome) => {
+    if (!onAttempt) return
+    try {
+      onAttempt(outcome)
+    } catch (error) {
+      console.warn(`[${tag}] attempt observer threw:`, error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  /* Counts only attempts that RAN. A candidate skipped for lack of budget
+     never touched a provider, so counting it would report a fallback that
+     did not happen. */
+  let index = 0
 
   for (const attempt of attempts) {
     const remaining = deadline.remainingMs()
@@ -73,12 +107,18 @@ export async function runChain<T>(attempts: Attempt<T>[], deadline: Deadline, ta
       continue
     }
 
+    const startedAt = Date.now()
     try {
-      return await attempt.run(AbortSignal.timeout(attempt.timeoutMs))
+      const value = await attempt.run(AbortSignal.timeout(attempt.timeoutMs))
+      observe({ label: attempt.label, index, ok: true, durationMs: Date.now() - startedAt })
+      return value
     } catch (error) {
       lastError = error
-      console.warn(`[${tag}] ${attempt.label} failed:`, error instanceof Error ? error.message : String(error))
+      const message = error instanceof Error ? error.message : String(error)
+      observe({ label: attempt.label, index, ok: false, durationMs: Date.now() - startedAt, error: message })
+      console.warn(`[${tag}] ${attempt.label} failed:`, message)
     }
+    index += 1
   }
 
   throw lastError

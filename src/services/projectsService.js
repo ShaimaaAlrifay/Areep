@@ -122,7 +122,15 @@ function isMissingPrdColumn(error) {
  * until the migration is run.
  */
 export async function updateProjectPrd(projectId, prdData) {
-  const { error } = await supabase.from('projects').update({ status: 'prd_generated', prd_data: prdData }).eq('id', projectId)
+  /* `prd_generated_at` is stamped here rather than derived later: it is the
+     only moment the application knows a document was actually produced.
+     `updated_at` cannot stand in for it — the touch trigger moves that on
+     every write, so a rename would read as a generation. */
+  const stampedAt = new Date().toISOString()
+  const { error } = await supabase
+    .from('projects')
+    .update({ status: 'prd_generated', prd_data: prdData, prd_generated_at: stampedAt })
+    .eq('id', projectId)
   if (error && isMissingPrdColumn(error)) {
     return supabase.from('projects').update({ status: 'prd_generated' }).eq('id', projectId)
   }
