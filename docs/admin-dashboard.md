@@ -8,9 +8,15 @@
 
 ## 1) القاعدة
 
-شغّل `supabase/schema.sql` كامل على المشروع (SQL Editor في لوحة Supabase).
-الملف كله idempotent (`create table if not exists` / `create or replace`)،
-فتشغيله على قاعدة فيها بيانات ما يحذف شيئًا.
+شغّل **`supabase/admin-setup.sql`** في SQL Editor (لوحة Supabase → SQL Editor
+→ New query → الصق الملف → Run). هذا هو الجزء الجديد فقط، مقتطعًا من
+`supabase/schema.sql` حرفيًا.
+
+الملف idempotent (`create table if not exists` / `create or replace`)، فتشغيله
+مرة ثانية — أو تشغيل `schema.sql` كامل بدلًا منه — ما يحذف شيئًا.
+
+هذي الخطوة أولًا وإلا كل شيء بعدها يفشل: `app_admins` ما تكون موجودة، وإضافة
+صلاحيتك في الخطوة 3 ترجّع `relation "app_admins" does not exist`.
 
 اللي يضيفه للّوحة تحديدًا:
 
@@ -42,10 +48,19 @@ supabase functions deploy prd               # نفس الشيء
 هات معرّف حسابك ثم أضف الصف:
 
 ```sql
--- بدّل البريد ببريدك
+-- بدّل البريد ببريدك. lower() مقصود: Supabase Auth يخزّن البريد بحروف صغيرة،
+-- ومقارنة حسّاسة لحالة الأحرف ما تطابق شيئًا — والـinsert وقتها ما يرمي خطأ،
+-- يرجّع INSERT 0 0 بهدوء وتكتشفها لما /admin يعطيك 404.
 insert into app_admins (user_id, is_super_admin)
-select id, true from auth.users where email = 'you@example.com'
+select id, true from auth.users where lower(email) = lower('you@example.com')
 on conflict (user_id) do update set is_super_admin = true;
+```
+
+تحقّق إنه نزل فعلًا — الاستعلام هذا هو اللي يثبت، مو نجاح الـinsert:
+
+```sql
+select u.email, a.is_super_admin
+from app_admins a join auth.users u on u.id = a.user_id;
 ```
 
 افتح `/admin`. أي حساب ثاني — مسجّل دخول أو لا — يشوف صفحة 404 عادية، والدالة
