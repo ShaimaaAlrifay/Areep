@@ -1,0 +1,600 @@
+/* ============================================================
+   Super Admin — design system.
+
+   Scoped entirely under `.ad` so it cannot leak into the product. It
+   borrows the app's tokens (colour, spacing, radius, type) rather than
+   inventing a second palette: the console should look like Areeb's back
+   office, not like a different company's tool.
+
+   Density is the one place it deliberately departs from the product.
+   The app is a calm writing surface; this is an instrument panel, so type
+   is a step smaller, rows are tighter, and borders do the separating
+   instead of whitespace. Colour is reserved for status — nothing here is
+   coloured for decoration, which is what lets a single red pill actually
+   mean something.
+
+   RTL is structural, not a flip: logical properties throughout, the
+   sidebar on the right, and time flowing right-to-left in every chart.
+   ============================================================ */
+
+.ad {
+  --ad-gutter: var(--space-6);
+  --ad-radius: var(--radius-md);
+  --ad-sidebar: 248px;
+  --ad-topbar: 60px;
+  --ad-pos: #4fb87a;
+  --ad-neg: #f0837a;
+  --ad-warn: #d8a94d;
+
+  display: flex;
+  min-height: 100vh;
+  min-height: 100svh;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-arabic);
+  font-size: 14px;
+}
+
+.ad-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* ---------------------------------------------------------- */
+/* sidebar                                                     */
+/* ---------------------------------------------------------- */
+.ad-sidebar {
+  position: sticky;
+  top: 0;
+  flex: 0 0 var(--ad-sidebar);
+  width: var(--ad-sidebar);
+  height: 100vh;
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-3);
+  background: var(--color-bg-subtle);
+  border-inline-start: 1px solid var(--color-border);
+  overflow-y: auto;
+}
+
+.ad-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-4);
+}
+.ad-brand img { flex: none; }
+.ad-brand span {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-display);
+  font-size: 16px;
+  line-height: 1.2;
+}
+.ad-brand em {
+  font-family: var(--font-arabic);
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.ad-nav { display: flex; flex-direction: column; gap: 2px; }
+
+.ad-nav-item {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 9px var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.ad-nav-item:hover { background: var(--color-surface-hover); color: var(--color-text); }
+.ad-nav-item.is-active { background: var(--color-surface); color: var(--color-text); }
+/* The active marker rides the reading-leading edge — in RTL that is the
+   right — so it reads as "you are here" rather than as a stray rule. */
+.ad-nav-item.is-active { box-shadow: inset -2px 0 0 var(--color-accent); }
+.ad-nav-label { font-size: 13.5px; }
+.ad-nav-en {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+  opacity: 0;
+  transition: opacity 0.14s ease;
+}
+.ad-nav-item:hover .ad-nav-en,
+.ad-nav-item.is-active .ad-nav-en { opacity: 1; }
+
+.ad-sidebar-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+.ad-owner-badge {
+  align-self: flex-start;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 99px;
+  color: var(--color-accent-text);
+  background: var(--color-accent-subtle);
+  border: 1px solid var(--color-accent-border);
+}
+.ad-owner-mail {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: ltr;
+  text-align: right;
+}
+
+/* ---------------------------------------------------------- */
+/* topbar                                                      */
+/* ---------------------------------------------------------- */
+.ad-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.ad-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--ad-topbar);
+  padding-inline: var(--ad-gutter);
+  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ad-range { display: flex; gap: 2px; padding: 3px; background: var(--color-bg-subtle); border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
+.ad-range-btn {
+  padding: 5px 11px;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.ad-range-btn:hover { color: var(--color-text); }
+.ad-range-btn.is-active { background: var(--color-surface); color: var(--color-text); }
+
+.ad-compare select {
+  font: inherit;
+  font-size: 12.5px;
+  padding: 6px 10px;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.ad-topbar-actions { margin-inline-start: auto; display: flex; gap: var(--space-2); }
+
+.ad-icon-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--color-text-secondary);
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.14s ease, border-color 0.14s ease;
+}
+.ad-icon-btn:hover:not(:disabled) { color: var(--color-text); border-color: var(--color-border-strong); }
+.ad-icon-btn:disabled { opacity: 0.5; cursor: default; }
+.ad-icon-btn.has-alerts { color: var(--ad-warn); border-color: color-mix(in srgb, var(--ad-warn) 40%, transparent); }
+.ad-badge {
+  position: absolute;
+  inset-block-start: -6px;
+  inset-inline-start: -6px;
+  min-width: 16px;
+  padding: 0 4px;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+  color: #0a0a0b;
+  background: var(--ad-warn);
+  border-radius: 99px;
+}
+.ad-nav-toggle { display: none; }
+
+.ad-alerts-drop {
+  position: sticky;
+  top: var(--ad-topbar);
+  z-index: 19;
+  padding: var(--space-3) var(--ad-gutter);
+  background: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border);
+}
+.ad-alerts-drop ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.ad-alert { display: flex; flex-direction: column; gap: 2px; padding-inline-start: var(--space-3); border-inline-start: 2px solid var(--color-border); }
+.ad-alert strong { font-size: 13px; font-weight: 600; }
+.ad-alert span { font-size: 12px; color: var(--color-text-secondary); }
+.ad-alert-critical { border-inline-start-color: var(--ad-neg); }
+.ad-alert-warning { border-inline-start-color: var(--ad-warn); }
+
+.ad-scrim { display: none; }
+
+/* ---------------------------------------------------------- */
+/* content + sections                                          */
+/* ---------------------------------------------------------- */
+.ad-content { flex: 1; padding: var(--space-6) var(--ad-gutter) var(--space-16); }
+
+.ad-section { display: flex; flex-direction: column; gap: var(--space-6); max-width: 1320px; }
+
+.ad-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
+.ad-section-head h1 {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+}
+.ad-section-en { font-family: var(--font-arabic); font-size: 11px; font-weight: 400; letter-spacing: 0.04em; color: var(--color-text-muted); }
+.ad-section-purpose { margin: 6px 0 0; font-size: 13px; color: var(--color-text-secondary); max-width: 68ch; line-height: 1.6; }
+
+.ad-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--ad-radius);
+  padding: var(--space-4) var(--space-4) var(--space-6);
+}
+.ad-panel-head { margin-bottom: var(--space-4); }
+.ad-panel-head h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.ad-panel-head p { margin: 4px 0 0; font-size: 12px; color: var(--color-text-muted); line-height: 1.6; max-width: 70ch; }
+.ad-panel-loading { height: 140px; border-radius: var(--radius-sm); background: var(--color-bg-subtle); }
+
+/* Panels size to their own content instead of stretching to match the
+   tallest sibling — a three-row bar list next to a five-step funnel
+   should not grow half a panel of empty space to keep the bottoms level. */
+.ad-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); align-items: start; }
+.ad-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: var(--space-3); }
+.ad-stat-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+
+/* A grid item's automatic minimum size is its min-content width, and a
+   panel wrapping a table inherits that table's min-content — so a panel
+   holding a wide table pushes itself past its own track and out of the
+   page, even though `.ad-table-scroll` is there to scroll it. Flooring
+   the items at zero hands the overflow back to the scroll container that
+   was built to take it. */
+.ad-grid-2 > *,
+.ad-kpi-grid > *,
+.ad-stat-row > *,
+.ad-insight-grid > * { min-width: 0; }
+.ad-table-scroll { max-width: 100%; }
+
+/* ---------------------------------------------------------- */
+/* KPI card                                                    */
+/* ---------------------------------------------------------- */
+.ad-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 118px;
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--ad-radius);
+  text-decoration: none;
+  color: inherit;
+}
+.ad-kpi.is-linked { transition: border-color 0.14s ease, background 0.14s ease; }
+.ad-kpi.is-linked:hover { border-color: var(--color-border-strong); background: var(--color-surface-hover); }
+
+.ad-kpi-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.ad-kpi-label { font-size: 12.5px; color: var(--color-text-secondary); }
+.ad-kpi-en { font-size: 9.5px; letter-spacing: 0.04em; color: var(--color-text-muted); }
+
+.ad-kpi-value-row { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-3); }
+/* Tabular figures so a column of cards does not jitter as values change. */
+.ad-kpi-value { font-size: 27px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
+
+.ad-kpi-foot { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.ad-change { display: inline-flex; align-items: baseline; gap: 6px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.ad-change em { font-style: normal; font-size: 10.5px; color: var(--color-text-muted); }
+.ad-change-positive { color: var(--ad-pos); }
+.ad-change-negative { color: var(--ad-neg); }
+.ad-change-neutral { color: var(--color-text-muted); }
+.ad-kpi-sample { font-size: 10.5px; color: var(--color-text-muted); }
+.ad-kpi-hint { margin: 0; font-size: 11px; color: var(--color-text-muted); line-height: 1.55; }
+
+/* ---------------------------------------------------------- */
+/* data states                                                 */
+/* ---------------------------------------------------------- */
+.ad-nodata { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.ad-nodata-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  color: var(--color-text-muted);
+  background: var(--color-bg-subtle);
+  border: 1px dashed var(--color-border-strong);
+}
+.ad-nodata-reason { margin: 0; font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; max-width: 60ch; }
+.ad-nodata-note { margin: 0; font-size: 11px; color: var(--color-text-muted); line-height: 1.55; }
+.ad-nodata.is-compact .ad-nodata-reason { font-size: 11.5px; }
+
+.ad-empty { padding: var(--space-6) 0; text-align: center; }
+.ad-empty-title { margin: 0; font-size: 13px; color: var(--color-text-secondary); }
+.ad-empty-hint { margin: 6px 0 0; font-size: 11.5px; color: var(--color-text-muted); }
+.ad-inline-empty { margin: 0; font-size: 12.5px; color: var(--color-text-muted); }
+
+.ad-error {
+  padding: var(--space-6);
+  background: var(--color-danger-bg);
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--ad-radius);
+  color: var(--color-danger);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.ad-skeleton {
+  display: block;
+  background: linear-gradient(90deg, var(--color-bg-subtle), var(--color-surface-hover), var(--color-bg-subtle));
+  background-size: 200% 100%;
+  animation: ad-shimmer 1.4s linear infinite;
+}
+@keyframes ad-shimmer {
+  to { background-position: -200% 0; }
+}
+
+.ad-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; }
+.ad-pill i { width: 7px; height: 7px; border-radius: 99px; background: currentColor; }
+.ad-pill-healthy { color: var(--ad-pos); }
+.ad-pill-warning { color: var(--ad-warn); }
+.ad-pill-critical { color: var(--ad-neg); }
+.ad-pill-unknown { color: var(--color-text-muted); }
+
+.ad-tag { font-size: 10.5px; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+.ad-tag-live { color: var(--ad-pos); background: color-mix(in srgb, var(--ad-pos) 14%, transparent); }
+.ad-tag-missing { color: var(--color-text-muted); background: var(--color-bg-subtle); border: 1px dashed var(--color-border-strong); }
+
+/* ---------------------------------------------------------- */
+/* insights                                                    */
+/* ---------------------------------------------------------- */
+.ad-insight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-3); }
+.ad-insight {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-4);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-inline-start: 2px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+}
+.ad-insight.is-loading { min-height: 132px; }
+.ad-insight-critical { border-inline-start-color: var(--ad-neg); }
+.ad-insight-warning { border-inline-start-color: var(--ad-warn); }
+.ad-insight-good { border-inline-start-color: var(--ad-pos); }
+.ad-insight-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+.ad-insight-head h3 { margin: 0; font-size: 13.5px; font-weight: 600; }
+.ad-insight-change { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--color-text-secondary); }
+.ad-insight-metric { margin: 0; font-size: 10px; letter-spacing: 0.04em; color: var(--color-text-muted); }
+.ad-insight-reason { margin: 0; font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.65; }
+.ad-insight-action {
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--color-accent-text);
+  text-decoration: none;
+}
+.ad-insight-action:hover { text-decoration: underline; }
+
+/* ---------------------------------------------------------- */
+/* charts                                                      */
+/* ---------------------------------------------------------- */
+.ad-spark { flex: none; overflow: visible; }
+.ad-spark-line { fill: none; stroke: var(--color-text-muted); stroke-width: 1.5; stroke-linejoin: round; }
+.ad-spark-area { fill: currentColor; opacity: 0.07; stroke: none; color: var(--color-text-muted); }
+.ad-spark-positive .ad-spark-line, .ad-spark-positive .ad-spark-area { stroke: var(--ad-pos); color: var(--ad-pos); }
+.ad-spark-negative .ad-spark-line, .ad-spark-negative .ad-spark-area { stroke: var(--ad-neg); color: var(--ad-neg); }
+
+.ad-trend svg { width: 100%; height: 220px; }
+.ad-grid { stroke: var(--color-border); stroke-width: 1; }
+.ad-line { fill: none; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.ad-line-0 { stroke: var(--color-accent); color: var(--color-accent); }
+.ad-line-1 { stroke: var(--ad-pos); color: var(--ad-pos); }
+.ad-line-2 { stroke: var(--ad-warn); color: var(--ad-warn); }
+.ad-legend { display: flex; flex-wrap: wrap; gap: var(--space-4); margin-top: var(--space-3); font-size: 11.5px; color: var(--color-text-secondary); }
+.ad-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.ad-dot { width: 8px; height: 2px; border-radius: 2px; background: currentColor; }
+.ad-legend-scale { margin-inline-start: auto; color: var(--color-text-muted); }
+
+.ad-funnel { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-4); }
+.ad-funnel-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); margin-bottom: 6px; }
+.ad-funnel-label { font-size: 13px; }
+.ad-funnel-count { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ad-funnel-track { height: 8px; border-radius: 99px; background: var(--color-bg-subtle); overflow: hidden; }
+.ad-funnel-fill { height: 100%; border-radius: 99px; background: var(--color-accent); opacity: 0.85; }
+.ad-funnel-meta { display: flex; gap: var(--space-4); margin-top: 6px; font-size: 11px; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+.ad-funnel-meta .is-drop { color: var(--color-text-secondary); }
+
+.ad-bars { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.ad-bar-row { display: grid; grid-template-columns: minmax(80px, 130px) 1fr auto; align-items: center; gap: var(--space-3); font-size: 12.5px; }
+.ad-bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-secondary); }
+.ad-bar-track { height: 6px; border-radius: 99px; background: var(--color-bg-subtle); overflow: hidden; }
+.ad-bar-fill { display: block; height: 100%; border-radius: 99px; background: var(--color-accent); opacity: 0.75; }
+.ad-bar-value { display: inline-flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums; }
+.ad-bar-value em { font-style: normal; font-size: 10.5px; color: var(--color-text-muted); }
+
+/* ---------------------------------------------------------- */
+/* tables                                                      */
+/* ---------------------------------------------------------- */
+.ad-table-scroll { overflow-x: auto; }
+.ad-table, .ad-cohort { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.ad-table th, .ad-table td, .ad-cohort th, .ad-cohort td {
+  padding: 9px var(--space-3);
+  text-align: start;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+.ad-table thead th, .ad-cohort thead th { font-size: 11px; font-weight: 500; color: var(--color-text-muted); }
+.ad-table tbody th, .ad-cohort tbody th { font-weight: 500; }
+.ad-table td, .ad-cohort td { font-variant-numeric: tabular-nums; color: var(--color-text-secondary); }
+.ad-cell-note { white-space: normal; min-width: 220px; }
+
+.ad-cohort .ad-cell { position: relative; color: var(--color-text); }
+/* Heat is a background wash keyed to the value, not a hue shift — the
+   number stays readable at every intensity. */
+.ad-cohort .ad-cell::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 4px;
+  background: var(--color-accent);
+  opacity: calc(var(--heat, 0) * 0.42);
+}
+.ad-cohort .ad-cell span { position: relative; }
+.ad-cell-immature { color: var(--color-text-muted); }
+
+/* ---------------------------------------------------------- */
+/* misc blocks                                                 */
+/* ---------------------------------------------------------- */
+.ad-events { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.ad-events li { display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: var(--space-3); font-size: 12px; padding-bottom: var(--space-2); border-bottom: 1px solid var(--color-border); }
+.ad-event-provider { color: var(--color-text); }
+.ad-event-msg { color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: ltr; text-align: right; }
+.ad-event-time { color: var(--color-text-muted); font-size: 11px; white-space: nowrap; }
+
+.ad-health { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.ad-health-row { display: grid; grid-template-columns: minmax(160px, 220px) 1fr auto; align-items: center; gap: var(--space-4); padding-bottom: var(--space-3); border-bottom: 1px solid var(--color-border); }
+.ad-health-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.ad-health-name { display: flex; flex-direction: column; gap: 2px; }
+.ad-health-name strong { font-size: 13px; font-weight: 600; }
+.ad-health-name span { font-size: 10px; letter-spacing: 0.04em; color: var(--color-text-muted); }
+.ad-health-detail { margin: 0; font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; }
+.ad-health-status { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.ad-health-time { font-size: 10.5px; color: var(--color-text-muted); }
+
+.ad-defs { display: grid; gap: var(--space-3); margin: 0; }
+.ad-defs > div { display: flex; justify-content: space-between; gap: var(--space-4); padding-bottom: var(--space-2); border-bottom: 1px solid var(--color-border); }
+.ad-defs dt { font-size: 12.5px; color: var(--color-text-secondary); }
+.ad-defs dd { margin: 0; font-size: 12.5px; }
+
+.ad-checklist, .ad-rules { margin: 0; padding-inline-start: 1.2em; display: grid; gap: var(--space-2); font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.7; }
+.ad-note { margin: var(--space-4) 0 0; font-size: 11.5px; color: var(--color-text-muted); line-height: 1.65; }
+.ad code { font-family: var(--font-mono, ui-monospace, monospace); font-size: 0.92em; padding: 1px 5px; border-radius: 4px; background: var(--color-bg-subtle); direction: ltr; display: inline-block; }
+
+.ad-btn {
+  font: inherit;
+  font-size: 12.5px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-strong);
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.ad-btn-ghost:hover { background: var(--color-surface-hover); }
+
+.ad-boot-error { max-width: 520px; margin: 20vh auto; padding: var(--space-6); text-align: center; }
+.ad-boot-error h1 { font-family: var(--font-display); font-size: 20px; margin: 0 0 var(--space-3); }
+.ad-boot-error p { font-size: 13.5px; color: var(--color-text-secondary); line-height: 1.7; }
+
+.ad :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 4px; }
+
+/* ---------------------------------------------------------- */
+/* responsive — a rebuilt layout at each step, not a squeeze    */
+/* ---------------------------------------------------------- */
+@media (max-width: 1180px) {
+  .ad { --ad-sidebar: 68px; }
+  /* Below this width the labels cost more than they give, so the rail
+     becomes icons with the label as a tooltip. */
+  .ad-nav-item { grid-template-columns: 1fr; justify-items: center; padding: 11px 0; }
+  .ad-nav-label, .ad-nav-en { display: none; }
+  .ad-brand span { display: none; }
+  .ad-brand { justify-content: center; padding-inline: 0; }
+  .ad-sidebar-foot { display: none; }
+}
+
+@media (max-width: 900px) {
+  .ad-grid-2 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px) {
+  .ad { --ad-gutter: var(--space-4); }
+
+  /* The rail becomes a drawer. On a phone the console is a read-first
+     surface: you open it to check one number, so the content gets the
+     full width and navigation is summoned, not resident. */
+  .ad-sidebar {
+    position: fixed;
+    inset-block: 0;
+    /* inline-START, which in RTL is the RIGHT edge — the same side the
+       rail occupies on desktop, so the drawer slides out of where the
+       navigation already lives. inline-end would pin it to the left and
+       translateX(100%) would then push it across the content instead of
+       off-screen, leaving an invisible panel sitting on top of the page
+       and eating the taps meant for the menu button. */
+    inset-inline-start: 0;
+    z-index: 40;
+    width: 250px;
+    flex-basis: auto;
+    transform: translateX(100%);
+    transition: transform 0.22s ease;
+    box-shadow: var(--shadow-md);
+  }
+  .ad-sidebar.is-open { transform: translateX(0); }
+  .ad { --ad-sidebar: 0px; }
+  .ad-nav-item { grid-template-columns: 18px 1fr; justify-items: start; padding: 10px var(--space-3); }
+  .ad-nav-label { display: block; }
+  .ad-brand span { display: flex; }
+  .ad-brand { justify-content: flex-start; padding-inline: var(--space-3); }
+  .ad-sidebar-foot { display: flex; }
+
+  .ad-scrim { display: block; position: fixed; inset: 0; z-index: 39; border: 0; background: rgba(0, 0, 0, 0.5); }
+  .ad-nav-toggle { display: grid; }
+
+  /* The range picker scrolls sideways rather than wrapping into a second
+     row that pushes the content down on every screen. */
+  .ad-range { overflow-x: auto; scrollbar-width: none; }
+  .ad-range::-webkit-scrollbar { display: none; }
+  .ad-compare { display: none; }
+
+  .ad-kpi-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .ad-kpi { min-height: 100px; padding: var(--space-3); }
+  .ad-kpi-value { font-size: 22px; }
+  .ad-stat-row { grid-template-columns: 1fr; }
+
+  .ad-health-row { grid-template-columns: 1fr; gap: var(--space-2); }
+  .ad-health-status { align-items: flex-start; flex-direction: row; gap: var(--space-3); }
+  .ad-bar-row { grid-template-columns: minmax(70px, 100px) 1fr auto; }
+  .ad-funnel-meta { flex-direction: column; gap: 2px; }
+  .ad-events li { grid-template-columns: 1fr; gap: 2px; }
+  .ad-section-head h1 { font-size: 19px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ad-skeleton { animation: none; }
+  .ad-sidebar { transition: none; }
+}

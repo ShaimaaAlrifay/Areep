@@ -15,6 +15,7 @@
    rather than starting one it cannot finish.
    ============================================================ */
 import { Deadline, parseValidated, runChain, type Attempt } from '../_shared/chain.ts'
+import { providerFromLabel, recordAiEvent } from '../_shared/aiEvents.ts'
 import { authenticatedUser } from '../_shared/auth.ts'
 import { handlePreflight, jsonResponse } from '../_shared/cors.ts'
 import { sanitizeProjectSlug } from '../_shared/prdUtils.ts'
@@ -136,7 +137,18 @@ Deno.serve(async (req: Request) => {
 
   let result: any
   try {
-    result = await runChain(attempts, new Deadline(TOTAL_BUDGET_MS), 'areep-prd')
+    result = await runChain(attempts, new Deadline(TOTAL_BUDGET_MS), 'areep-prd', (outcome) =>
+      recordAiEvent({
+        kind: 'prd',
+        provider: providerFromLabel(outcome.label),
+        attempt: outcome.index,
+        ok: outcome.ok,
+        durationMs: outcome.durationMs,
+        error: outcome.error,
+        projectId: typeof projectId === 'string' ? projectId : null,
+        userId: user.sub,
+      }),
+    )
   } catch (error) {
     console.warn(
       `[areep-prd] all providers failed for project ${projectId ?? '(unknown)'}:`,

@@ -14,6 +14,7 @@
    same JSON contract, different model behind it. Not a role swap.
    ============================================================ */
 import { Deadline, parseValidated, runChain, type Attempt } from '../_shared/chain.ts'
+import { providerFromLabel, recordAiEvent } from '../_shared/aiEvents.ts'
 import { authenticatedUser } from '../_shared/auth.ts'
 import { handlePreflight, jsonResponse } from '../_shared/cors.ts'
 import { DISCOVERY_SYSTEM_PROMPT } from '../_shared/prompts/discovery.ts'
@@ -106,7 +107,18 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const parsed = await runChain(attempts, new Deadline(TOTAL_BUDGET_MS), 'areep-discovery')
+    const parsed = await runChain(attempts, new Deadline(TOTAL_BUDGET_MS), 'areep-discovery', (outcome) =>
+      recordAiEvent({
+        kind: 'discovery',
+        provider: providerFromLabel(outcome.label),
+        attempt: outcome.index,
+        ok: outcome.ok,
+        durationMs: outcome.durationMs,
+        error: outcome.error,
+        projectId: typeof projectId === 'string' ? projectId : null,
+        userId: user.sub,
+      }),
+    )
     return jsonResponse(parsed, 200, origin)
   } catch (error) {
     console.warn(

@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
+import { SuperAdminRoute } from '../admin/SuperAdminRoute'
 import { ProtectedRoute } from '../components/ProtectedRoute'
 import { ScrollToTop } from '../components/ScrollToTop'
 import { SkipLink } from '../components/SkipLink'
@@ -34,6 +35,24 @@ const RequirementsReview = lazy(() =>
 )
 const PrdPreview = lazy(() => import('../features/projects/PrdPreview').then((m) => ({ default: m.PrdPreview })))
 
+/* The owner console is split away for the same reason as the workspace,
+   only more so: it is one person's screen. Nobody else should download a
+   byte of it, and lazily loading it means nobody does. */
+const AdminShell = lazy(() => import('../admin/AdminShell').then((m) => ({ default: m.AdminShell })))
+const Overview = lazy(() => import('../admin/pages/Overview').then((m) => ({ default: m.Overview })))
+const Acquisition = lazy(() => import('../admin/pages/Acquisition').then((m) => ({ default: m.Acquisition })))
+const Activation = lazy(() => import('../admin/pages/Activation').then((m) => ({ default: m.Activation })))
+const Engagement = lazy(() => import('../admin/pages/Engagement').then((m) => ({ default: m.Engagement })))
+const Quality = lazy(() => import('../admin/pages/Quality').then((m) => ({ default: m.Quality })))
+const Retention = lazy(() => import('../admin/pages/Retention').then((m) => ({ default: m.Retention })))
+const Revenue = lazy(() => import('../admin/pages/Revenue').then((m) => ({ default: m.Revenue })))
+const AiOperations = lazy(() => import('../admin/pages/AiOperations').then((m) => ({ default: m.AiOperations })))
+const AdminUsers = lazy(() => import('../admin/pages/Users').then((m) => ({ default: m.Users })))
+const AdminProjects = lazy(() => import('../admin/pages/Projects').then((m) => ({ default: m.Projects })))
+const AdminPrds = lazy(() => import('../admin/pages/Prds').then((m) => ({ default: m.Prds })))
+const Health = lazy(() => import('../admin/pages/Health').then((m) => ({ default: m.Health })))
+const AdminSettings = lazy(() => import('../admin/pages/Settings').then((m) => ({ default: m.Settings })))
+
 function App() {
   return (
     <AuthProvider>
@@ -67,6 +86,32 @@ function App() {
             <Route path="/chat/:projectId" element={<ChatPage />} />
             <Route path="/chat/:projectId/requirements" element={<RequirementsReview />} />
             <Route path="/chat/:projectId/prd" element={<PrdPreview />} />
+          </Route>
+
+          {/* Owner-only. The guard here decides what renders; the actual
+              enforcement is the admin-analytics function refusing to
+              answer anyone who is not in app_admins, so removing this
+              block would change the URL's appearance and nothing else. */}
+          <Route
+            element={
+              <SuperAdminRoute>
+                <AdminShell />
+              </SuperAdminRoute>
+            }
+          >
+            <Route path="/admin" element={<Overview />} />
+            <Route path="/admin/acquisition" element={<Acquisition />} />
+            <Route path="/admin/activation" element={<Activation />} />
+            <Route path="/admin/engagement" element={<Engagement />} />
+            <Route path="/admin/quality" element={<Quality />} />
+            <Route path="/admin/retention" element={<Retention />} />
+            <Route path="/admin/revenue" element={<Revenue />} />
+            <Route path="/admin/ai" element={<AiOperations />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/projects" element={<AdminProjects />} />
+            <Route path="/admin/prds" element={<AdminPrds />} />
+            <Route path="/admin/health" element={<Health />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
           </Route>
 
           {/* Catch-all. Without it an unknown URL rendered an empty page. */}
