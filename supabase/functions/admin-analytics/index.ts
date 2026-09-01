@@ -23,18 +23,11 @@
    never as a number, so the dashboard can never imply a measurement that
    was not taken.
    ============================================================ */
-import { corsHeaders, handleOptions } from '../_shared/cors.ts'
+import { jsonResponse, handlePreflight } from '../_shared/cors.ts'
 import { authenticatedUser } from '../_shared/auth.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-
-function jsonResponse(body: unknown, status: number, origin: string | null): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) },
-  })
-}
 
 /** One round-trip to Postgres through PostgREST's RPC endpoint. */
 async function rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
@@ -63,7 +56,7 @@ async function isSuperAdmin(userId: string): Promise<boolean> {
 
 Deno.serve(async (req) => {
   const origin = req.headers.get('origin')
-  const preflight = handleOptions(req, origin)
+  const preflight = handlePreflight(req)
   if (preflight) return preflight
 
   if (req.method !== 'POST') {

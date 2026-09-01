@@ -21,3 +21,12 @@ verify_jwt = true
 
 [functions.prd]
 verify_jwt = true
+
+# The owner dashboard's only data source. verify_jwt is the first of two
+# gates — it rejects anything without a valid Supabase Auth JWT before the
+# handler runs. The second gate is inside the handler: the caller's id must
+# be in app_admins with is_super_admin, checked with the service role. Gate
+# one alone would not be enough, since the publishable key is in the bundle
+# and any signed-in user carries a valid JWT.
+[functions.admin-analytics]
+verify_jwt = true
