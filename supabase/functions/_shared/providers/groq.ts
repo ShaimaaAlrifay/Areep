@@ -5,23 +5,24 @@
 
    The model and the forced json_object response format are unchanged.
    ============================================================ */
-import type { ChatMessage } from './gemini.ts'
+import { ProviderError, type ChatMessage, type ProviderResult, type ProviderUsage } from './gemini.ts'
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
-const GROQ_MODEL = 'openai/gpt-oss-120b'
+export const GROQ_MODEL = 'openai/gpt-oss-120b'
 
 export function groqKey(): string | undefined {
   const key = Deno.env.get('GROQ_API_KEY')
   return key && key.trim() ? key : undefined
 }
 
-/** @returns raw text — the caller parses, de-fences and shape-validates it. */
+/** @returns the raw text (the caller parses, de-fences and shape-validates
+ *  it) plus token usage, when Groq reported it. */
 export async function callGroq(
   apiKey: string,
   systemPrompt: string,
   messages: ChatMessage[],
   signal: AbortSignal,
-): Promise<string> {
+): Promise<ProviderResult> {
   const response = await fetch(GROQ_URL, {
     method: 'POST',
     signal,
@@ -35,11 +36,17 @@ export async function callGroq(
 
   if (!response.ok) {
     const detail = await response.text().catch(() => '')
-    throw new Error(`Groq responded with ${response.status}: ${detail.slice(0, 200)}`)
+    throw new ProviderError(`Groq responded with ${response.status}: ${detail.slice(0, 200)}`, response.status)
   }
 
   const data = await response.json()
   const text = data.choices?.[0]?.message?.content || ''
   if (!text) throw new Error('Groq returned no text content')
-  return text
+
+  const meta = data.usage as { prompt_tokens?: number; completion_tokens?: number } | undefined
+  const usage: ProviderUsage | null = meta
+    ? { promptTokens: meta.prompt_tokens ?? null, outputTokens: meta.completion_tokens ?? null }
+    : null
+
+  return { text, usage }
 }

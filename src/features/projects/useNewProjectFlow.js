@@ -34,6 +34,7 @@ export function useNewProjectFlow(organizationId) {
   const [answers, setAnswers] = useState({})
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState(null)
+  const [limitReached, setLimitReached] = useState(null)
   const [createdProject, setCreatedProject] = useState(null)
 
   const currentQuestion = QUESTIONS[stepIndex] ?? null
@@ -46,6 +47,7 @@ export function useNewProjectFlow(organizationId) {
     async (finalAnswers) => {
       setCreating(true)
       setError(null)
+      setLimitReached(null)
       try {
         const project = await createProject({
           organizationId,
@@ -68,7 +70,14 @@ export function useNewProjectFlow(organizationId) {
 
         setCreatedProject(project)
       } catch (submitError) {
-        setError(submitError?.message || 'تعذّر إنشاء المشروع. حاول مرة أخرى.')
+        // A reached limit is a business rule, not a failure — kept in its
+        // own state so ChatPage can render the dedicated banner (with the
+        // actual configured limit) instead of the generic error paragraph.
+        if (submitError?.code === 'project_limit_reached') {
+          setLimitReached({ limit: submitError.limit, current: submitError.current })
+        } else {
+          setError(submitError?.message || 'تعذّر إنشاء المشروع. حاول مرة أخرى.')
+        }
       } finally {
         setCreating(false)
       }
@@ -111,6 +120,7 @@ export function useNewProjectFlow(organizationId) {
     chipOptions,
     creating,
     error,
+    limitReached,
     createdProject,
     submitAnswer,
   }

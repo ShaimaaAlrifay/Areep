@@ -1,0 +1,27 @@
+{
+  // Committed on purpose, instead of relying on `wrangler deploy`'s
+  // auto-setup (installing @cloudflare/vite-plugin, generating this same
+  // file, asking "proceed with setup?") to run fresh on every single
+  // build. That flow only exists on `wrangler deploy`; the moment the
+  // Cloudflare project's deploy command was switched to
+  // `wrangler versions upload`, there was no config anywhere in the fresh
+  // clone and no fallback to create one — "Missing entry-point to Worker
+  // script or to assets directory" (confirmed on a live deploy). This file
+  // makes every wrangler subcommand see the same explicit answer.
+  //
+  // No `main` field: there is no Worker script, only the static SPA build
+  // — `assets.directory` is the entire deployment.
+  "name": "areep",
+  "compatibility_date": "2026-08-28",
+  "assets": {
+    "directory": "./dist",
+    // Cloudflare serves index.html for any path with no matching file —
+    // the same job public/_redirects does for Netlify, native to this
+    // host instead of routed through a file Cloudflare's own uploader
+    // would otherwise try (and fail) to parse as its own redirect syntax.
+    "not_found_handling": "single-page-application"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

@@ -1,5 +1,7 @@
 import { useAuthContext } from '../../contexts/AuthContext'
 import { Panel, Section } from '../components/Section'
+import { ProjectLimitsPanel } from '../components/ProjectLimitsPanel'
+import { AiUsageLimitsPanel } from '../components/AiUsageLimitsPanel'
 
 /* ============================================================
    Settings, and the page that documents the console's own honesty rules.
@@ -42,6 +44,10 @@ export function Settings() {
           يُقرأ ولا يُكتب إلا بمفتاح الخدمة من الخادم — ما فيه طريقة يمنح فيها مستخدم نفسه الصلاحية.
         </p>
       </Panel>
+
+      <ProjectLimitsPanel />
+
+      <AiUsageLimitsPanel />
 
       <Panel title="وش نتتبّعه" hint="كل قسم فاضي في اللوحة له سطر هنا يفسّر السبب.">
         <div className="ad-table-scroll">

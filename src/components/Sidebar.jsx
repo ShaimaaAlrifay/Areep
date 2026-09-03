@@ -1,6 +1,7 @@
 import { Link, NavLink } from 'react-router-dom'
 import { LOGO_LOCKUP_WHITE } from '../lib/brand'
 import { formatRelativeDate, STATUS_LABELS } from '../lib/constants'
+import { UsageIndicator } from './UsageIndicator'
 
 /**
  * Fixed, minimal sidebar (Section 9-10). RTL-aware via logical CSS
@@ -57,6 +58,7 @@ export function Sidebar({ projects, loading, user, onSignOut, isOpen, onClose })
         </div>
 
         <div className="sidebar-footer">
+          <UsageIndicator />
           <button type="button" className="sidebar-settings" disabled title="قريباً">
             الإعدادات
           </button>

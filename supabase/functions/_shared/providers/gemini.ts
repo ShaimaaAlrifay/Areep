@@ -18,11 +18,34 @@
       instead of consuming the function's 150s wall clock.
    ============================================================ */
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
+export const GEMINI_MODEL = 'gemini-3.6-flash'
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`
 
 export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
+}
+
+export interface ProviderUsage {
+  promptTokens: number | null
+  outputTokens: number | null
+}
+
+export interface ProviderResult {
+  text: string
+  usage: ProviderUsage | null
+}
+
+/** Thrown on a non-2xx response, carrying the HTTP status so callers can
+ *  tell a rate limit (429) apart from any other failure without parsing
+ *  the message string. */
+export class ProviderError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message)
+  }
 }
 
 /**
@@ -36,13 +59,14 @@ export function geminiKeys(): string[] {
   )
 }
 
-/** @returns raw text — the caller parses, de-fences and shape-validates it. */
+/** @returns the raw text (the caller parses, de-fences and shape-validates
+ *  it) plus token usage, when Gemini reported it. */
 export async function callGemini(
   apiKey: string,
   systemPrompt: string,
   messages: ChatMessage[],
   signal: AbortSignal,
-): Promise<string> {
+): Promise<ProviderResult> {
   const contents = messages.map((message) => ({
     role: message.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: message.content }],
@@ -61,7 +85,7 @@ export async function callGemini(
 
   if (!response.ok) {
     const detail = await response.text().catch(() => '')
-    throw new Error(`Gemini responded with ${response.status}: ${detail.slice(0, 200)}`)
+    throw new ProviderError(`Gemini responded with ${response.status}: ${detail.slice(0, 200)}`, response.status)
   }
 
   const data = await response.json()
@@ -72,5 +96,14 @@ export async function callGemini(
     .join('\n')
 
   if (!text) throw new Error('Gemini returned no text content')
-  return text
+
+  // usageMetadata is present on every real Gemini response; absent only
+  // if the API shape ever changes, in which case null (not 0) is what
+  // this table's "null is not zero" rule expects.
+  const meta = data.usageMetadata as { promptTokenCount?: number; candidatesTokenCount?: number } | undefined
+  const usage: ProviderUsage | null = meta
+    ? { promptTokens: meta.promptTokenCount ?? null, outputTokens: meta.candidatesTokenCount ?? null }
+    : null
+
+  return { text, usage }
 }

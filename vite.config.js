@@ -1,10 +1,11 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import { netlifyRedirectsPlugin } from './vite/netlifyRedirects'
 import { seoPlugin } from './vite/seoPlugin'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), seoPlugin()],
+  plugins: [react(), seoPlugin(), netlifyRedirectsPlugin()],
 
   server: {
     port: 5173,

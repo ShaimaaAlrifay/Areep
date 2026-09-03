@@ -19,7 +19,7 @@
    ============================================================ */
 
 export interface AiEvent {
-  kind: 'discovery' | 'prd'
+  kind: 'discovery' | 'prd' | 'regeneration'
   provider: string
   /** Position in the provider chain: 0 is primary, anything above is a fallback. */
   attempt: number
@@ -27,6 +27,10 @@ export interface AiEvent {
   durationMs?: number
   inputTokens?: number | null
   outputTokens?: number | null
+  /** Which model actually answered — Gemini and Groq have one each today, but this is a fact of the call, not an assumption. */
+  model?: string | null
+  /** Short machine code (QUOTA_EXCEEDED, AI_RATE_LIMITED, ...) — kept apart from the free-text `error` below. */
+  errorCode?: string | null
   error?: string
   projectId?: string | null
   userId?: string | null
@@ -59,6 +63,8 @@ async function insert(event: AiEvent): Promise<void> {
       duration_ms: event.durationMs ?? null,
       input_tokens: event.inputTokens ?? null,
       output_tokens: event.outputTokens ?? null,
+      model: event.model ?? null,
+      error_code: event.errorCode ?? null,
       error: trimError(event.error),
       project_id: event.projectId ?? null,
       user_id: event.userId ?? null,

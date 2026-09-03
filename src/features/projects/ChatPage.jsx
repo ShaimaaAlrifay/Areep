@@ -12,6 +12,18 @@ import { usePrdGeneration } from './usePrdGeneration'
 
 const DISCOVERY_ERROR_FALLBACK = 'ما قدرت أحلل الإجابة حالياً. حاول مرة ثانية.'
 
+/* Business-rule rejections from the AI Gateway's quota check — rendered as
+   Chat's dedicated `quotaBanner` (same treatment as `limitReached` for
+   project limits) instead of the generic inline error, so a "you're at
+   your monthly limit" reads as a configured rule rather than a bug. Every
+   other code (network failures, AI_UNAVAILABLE, AI_ERROR) stays a plain
+   error — retryable, not a rule to explain. */
+const QUOTA_BANNER_CODES = new Set(['QUOTA_EXCEEDED', 'DAILY_LIMIT_EXCEEDED', 'REQUEST_TOO_LARGE', 'AI_RATE_LIMITED'])
+/* Of those, only a rate limit is worth a Retry button — the other three
+   won't succeed again until the period resets or the conversation
+   shrinks, so offering Retry there would just repeat the same rejection. */
+const RETRYABLE_QUOTA_CODES = new Set(['AI_RATE_LIMITED'])
+
 /**
  * Builds the AI-facing conversation history from the chat's display
  * messages. Wizard Q&A bubbles (name/client/type/description prompts —
@@ -101,6 +113,7 @@ function NewProjectChat({ organizationId, refetchProjects }) {
       thinking={flow.creating}
       thinkingLabel="جارٍ إنشاء المشروع…"
       error={flow.error}
+      limitReached={flow.limitReached}
     />
   )
 }
@@ -114,7 +127,7 @@ function ExistingProjectChat({ projectId, organizationId }) {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const { messages, loading: messagesLoading, isMissingTable, addMessage } = useMessages(projectId, seedMessages)
-  const [discovery, setDiscovery] = useState({ loading: false, error: null, pendingHistory: null, ready: false })
+  const [discovery, setDiscovery] = useState({ loading: false, error: null, code: null, pendingHistory: null, ready: false })
   const autoStartedRef = useRef(false)
 
   useEffect(() => {
@@ -147,11 +160,11 @@ function ExistingProjectChat({ projectId, organizationId }) {
    */
   const runDiscovery = useCallback(
     async (history) => {
-      setDiscovery({ loading: true, error: null, pendingHistory: history, ready: false })
-      const { data, error } = await sendDiscoveryMessage(projectId, history)
+      setDiscovery({ loading: true, error: null, code: null, pendingHistory: history, ready: false })
+      const { data, error, code } = await sendDiscoveryMessage(projectId, history)
 
       if (error || !data) {
-        setDiscovery({ loading: false, error: error || DISCOVERY_ERROR_FALLBACK, pendingHistory: history, ready: false })
+        setDiscovery({ loading: false, error: error || DISCOVERY_ERROR_FALLBACK, code, pendingHistory: history, ready: false })
         return
       }
 
@@ -163,7 +176,7 @@ function ExistingProjectChat({ projectId, organizationId }) {
       // this the status pill (and the sidebar's per-project meta line) sat
       // on 'الاكتشاف' forever, no matter how complete the project was.
       const ready = data.discovery_status === 'ready'
-      setDiscovery({ loading: false, error: null, pendingHistory: null, ready })
+      setDiscovery({ loading: false, error: null, code: null, pendingHistory: null, ready })
 
       const discoveryState = {
         requirements_extracted: data.requirements_extracted || [],
@@ -255,6 +268,9 @@ function ExistingProjectChat({ projectId, organizationId }) {
    */
   const readyForPrd = discovery.ready || project?.discovery_state?.discovery_status === 'ready' || project?.status === 'ready_for_review'
 
+  const discoveryQuotaBanner =
+    discovery.error && QUOTA_BANNER_CODES.has(discovery.code) ? { code: discovery.code, message: discovery.error } : null
+
   if (loading) {
     return <div className="page-loading">جارٍ تحميل المشروع…</div>
   }
@@ -297,8 +313,9 @@ function ExistingProjectChat({ projectId, organizationId }) {
         disabled={discovery.loading}
         thinking={discovery.loading}
         thinkingLabel="أريب يحلل إجابتك..."
-        error={discovery.error || prd.error}
-        onRetry={discovery.error ? handleRetry : undefined}
+        error={discoveryQuotaBanner ? prd.error : discovery.error || prd.error}
+        quotaBanner={discoveryQuotaBanner}
+        onRetry={discovery.error && (!discoveryQuotaBanner || RETRYABLE_QUOTA_CODES.has(discovery.code)) ? handleRetry : undefined}
         readyForReview={readyForPrd && !discovery.loading}
         reviewHref={`/chat/${projectId}/requirements`}
         onGeneratePrd={prd.generate}

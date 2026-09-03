@@ -25,34 +25,7 @@
    ============================================================ */
 import { jsonResponse, handlePreflight } from '../_shared/cors.ts'
 import { authenticatedUser } from '../_shared/auth.ts'
-
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
-const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-
-/** One round-trip to Postgres through PostgREST's RPC endpoint. */
-async function rpc<T>(fn: string, args: Record<string, unknown>): Promise<T> {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      apikey: SERVICE_KEY,
-      Authorization: `Bearer ${SERVICE_KEY}`,
-    },
-    body: JSON.stringify(args),
-  })
-  if (!response.ok) throw new Error(`${fn}: ${response.status} ${await response.text()}`)
-  return (await response.json()) as T
-}
-
-async function isSuperAdmin(userId: string): Promise<boolean> {
-  const response = await fetch(
-    `${SUPABASE_URL}/rest/v1/app_admins?user_id=eq.${userId}&select=is_super_admin`,
-    { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } },
-  )
-  if (!response.ok) return false
-  const rows = (await response.json()) as { is_super_admin: boolean }[]
-  return rows.length > 0 && rows[0].is_super_admin === true
-}
+import { SUPABASE_URL, SERVICE_KEY, rpc, isSuperAdmin } from '../_shared/adminAuth.ts'
 
 Deno.serve(async (req) => {
   const origin = req.headers.get('origin')
