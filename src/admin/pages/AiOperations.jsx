@@ -1,10 +1,12 @@
+import { useEffect, useState } from 'react'
 import { KpiCard } from '../components/KpiCard'
 import { BarList } from '../components/charts'
 import { FallbackDiagram } from '../components/FallbackDiagram'
 import { EmptyState, NotTracked, StatusPill } from '../components/states'
 import { DataGate, Panel, Section, useAdminData } from '../components/Section'
-import { formatValue } from '../analytics/metric'
+import { formatValue, metric } from '../analytics/metric'
 import { formatRelativeDate } from '../../lib/constants'
+import { fetchAiLimits } from '../settings/client'
 
 /* Same tier the provider table below judges each row by — reused rather
    than re-guessed, so the headline status and the per-provider pills in
@@ -17,6 +19,51 @@ function aiHealthTier(errorRate) {
 }
 
 const TIER_LABEL = { healthy: 'مستقر', warning: 'يحتاج مراجعة', critical: 'حرج' }
+
+/* Current-state counts, not date-ranged like the rest of this page — "how
+   many users are near their limit right now" doesn't have a "this week
+   vs last week" framing. Reuses admin_get_ai_limits() (already computed
+   for the Settings panel) rather than growing admin_analytics() to
+   duplicate the same numbers. No ids, no emails — same rule as
+   everywhere else on this page: aggregate counts only. */
+function AiQuotaHealthPanel() {
+  const [status, setStatus] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let mounted = true
+    fetchAiLimits().then(({ data }) => {
+      if (!mounted) return
+      setLoading(false)
+      if (data) setStatus(data)
+    })
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="ad-kpi-grid">
+        <KpiCard label="ضمن الحد" en="Healthy" loading />
+        <KpiCard label="قريبون من الحد" en="Near Limit" loading />
+        <KpiCard label="تجاوزوا الحد" en="Over Limit" loading />
+      </div>
+    )
+  }
+
+  if (!status) {
+    return <NotTracked reason="ما قدرنا نجيب حالة الحصص — تأكد إن دالة admin-settings منشورة." />
+  }
+
+  return (
+    <div className="ad-kpi-grid">
+      <KpiCard label="ضمن الحد بارتياح" en="Healthy" metric={metric({ value: status.usage.healthy })} />
+      <KpiCard label="قريبون من الحد" en="Near Limit (80%+)" metric={metric({ value: status.usage.nearLimit })} />
+      <KpiCard label="تجاوزوا الحد" en="Over Limit" metric={metric({ value: status.usage.overLimit })} />
+    </div>
+  )
+}
 
 /* ============================================================
    The engine room: every model call the product makes, as it actually
@@ -36,6 +83,10 @@ export function AiOperations() {
   return (
     <DataGate error={error} refresh={refresh}>
       <Section title="عمليات الذكاء الاصطناعي" en="AI Operations" purpose="صحة المزوّدين، نسبة الفشل، والمسار البديل.">
+        <Panel title="حالة الحصص" hint="كم مستخدم قريب من حده الشهري أو تجاوزه — أعداد فقط، بدون تعريف بالمستخدمين.">
+          <AiQuotaHealthPanel />
+        </Panel>
+
         {!loading && ai?.available && tier && (
           <div className={`ad-ai-health is-${tier}`}>
             <span className="ad-ai-health-label">AI Health</span>

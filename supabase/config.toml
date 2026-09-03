@@ -30,3 +30,14 @@ verify_jwt = true
 # and any signed-in user carries a valid JWT.
 [functions.admin-analytics]
 verify_jwt = true
+
+# Same reasoning as admin-analytics — the second gate (app_admins) is what
+# actually matters, this just confirms the platform requires a real JWT.
+[functions.admin-settings]
+verify_jwt = true
+
+# No second gate needed here, unlike admin-settings — get-my-usage only
+# ever answers with the caller's own id (taken from their verified JWT),
+# so any signed-in user is exactly who is allowed to call it.
+[functions.get-my-usage]
+verify_jwt = true

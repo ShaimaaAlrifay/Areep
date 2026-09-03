@@ -554,6 +554,94 @@
 }
 .ad-btn-ghost:hover { background: var(--color-surface-hover); }
 
+/* ---- Project Limits panel ---- */
+.ad-limit-form { display: flex; align-items: flex-end; gap: var(--space-4); flex-wrap: wrap; margin-top: var(--space-2); }
+.ad-limit-field { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--color-text-secondary); }
+.ad-limit-field input {
+  width: 120px;
+  font: inherit;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  padding: 8px 12px;
+  color: var(--color-text);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+.ad-limit-field input:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+.ad-btn-primary {
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  border-color: transparent;
+}
+.ad-btn-primary:hover:not(:disabled) { background: var(--color-accent-hover); }
+.ad-btn:disabled { opacity: 0.5; cursor: default; }
+
+.ad-limit-error { margin: var(--space-3) 0 0; font-size: 12px; color: var(--ad-neg); }
+.ad-limit-saved { margin: var(--space-3) 0 0; font-size: 12px; color: var(--ad-pos); }
+
+.ad-limit-current {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  font-size: 13.5px;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.ad-limit-current strong { font-size: 16px; color: var(--color-text); font-variant-numeric: tabular-nums; }
+.ad-limit-updated { font-size: 11px; color: var(--color-text-muted); }
+
+.ad-limit-usage { display: flex; gap: var(--space-6); margin-top: var(--space-4); }
+.ad-limit-usage div { display: flex; flex-direction: column; gap: 2px; }
+.ad-limit-usage strong { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ad-limit-usage span { font-size: 11px; color: var(--color-text-muted); }
+
+@media (max-width: 760px) {
+  .ad-limit-usage { gap: var(--space-4); flex-wrap: wrap; }
+}
+
+/* ---- AI Usage & Limits panel, User lookup panel ---- */
+/* A grid instead of ProjectLimitsPanel's single-row flex: six fields
+   (vs. one) would either wrap unpredictably or force a very wide panel
+   in a flex row, so this lays them out in a responsive grid instead —
+   same field/input styling, just a different container. */
+.ad-limit-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--space-4);
+  align-items: end;
+}
+.ad-limit-form-grid .ad-limit-field input { width: 100%; }
+.ad-limit-field-hint { font-size: 10.5px; color: var(--color-text-muted); font-weight: 400; }
+
+.ad-user-lookup-search {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.ad-user-lookup-search input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 14px;
+  padding: 8px 12px;
+  color: var(--color-text);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+.ad-user-lookup-search input:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+
+.ad-user-lookup-result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.ad-user-lookup-actions { display: flex; gap: var(--space-3); }
+
 .ad-boot-error { max-width: 520px; margin: 20vh auto; padding: var(--space-6); text-align: center; }
 .ad-boot-error h1 { font-family: var(--font-display); font-size: 20px; margin: 0 0 var(--space-3); }
 .ad-boot-error p { font-size: 13.5px; color: var(--color-text-secondary); line-height: 1.7; }

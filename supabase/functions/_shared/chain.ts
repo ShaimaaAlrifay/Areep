@@ -29,6 +29,7 @@
    Net effect: worst case falls from six calls plus sleeps to three calls
    inside a bounded budget.
    ============================================================ */
+import type { ProviderResult, ProviderUsage } from './providers/gemini.ts'
 
 export interface Attempt<T> {
   /** Shown in logs only — never returned to the client. */
@@ -122,6 +123,31 @@ export async function runChain<T>(
   }
 
   throw lastError
+}
+
+/**
+ * Wraps one provider call + shape validation, and reports the token usage
+ * and model of an attempt that actually produced a valid parsed result —
+ * via `onSuccess`, not a return value, because only the attempt that
+ * `runChain` ultimately keeps (the first one that does not throw) should
+ * ever be treated as "the" usage for this request. A malformed response
+ * still consumed the provider's own tokens, but this product's quota
+ * tracking deliberately only meters the attempt that actually served the
+ * user, which is the same simplification `ai_events` itself has always
+ * made for cost/latency (see recordAiEvent's callers).
+ */
+export async function runProviderAttempt<T>(
+  call: (signal: AbortSignal) => Promise<ProviderResult>,
+  model: string,
+  validate: (value: unknown) => boolean,
+  what: string,
+  signal: AbortSignal,
+  onSuccess: (usage: ProviderUsage | null, model: string) => void,
+): Promise<T> {
+  const result = await call(signal)
+  const parsed = parseValidated<T>(result.text, validate, what)
+  onSuccess(result.usage, model)
+  return parsed
 }
 
 /** Strips ```json ... ``` fences models sometimes wrap JSON output in. */

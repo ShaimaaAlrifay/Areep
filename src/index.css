@@ -770,6 +770,51 @@ button:focus-visible {
   font-size: 13px;
 }
 
+/* ---------- Usage indicator (sidebar) ---------- */
+/* Quiet by default — a neutral bar and no note at all below ~70% usage
+   (see UsageIndicator.jsx's status bands). Only past that does the
+   `is-warning` variant switch the fill and text to the same danger tone
+   the project-limit banner already uses, so the two "you're near a
+   configured limit" moments in this app read as the same kind of thing. */
+.usage-indicator {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.usage-indicator-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.usage-indicator-row span:last-child {
+  font-variant-numeric: tabular-nums;
+}
+.usage-indicator-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+.usage-indicator-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent);
+  transition: width 0.3s ease;
+}
+.usage-indicator.is-warning .usage-indicator-fill {
+  background: var(--color-danger);
+}
+.usage-indicator.is-warning .usage-indicator-row {
+  color: var(--color-danger);
+}
+.usage-indicator-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-danger);
+}
+
 /* ---------- Main / chat column ---------- */
 .app-main {
   flex: 1;
@@ -974,6 +1019,35 @@ button:focus-visible {
   margin-block-start: var(--space-4);
   padding-block-start: var(--space-3);
   border-block-start: 1px solid var(--color-border);
+}
+
+.project-limit-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-danger-border);
+  background: var(--color-danger-bg);
+}
+.project-limit-title {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-danger);
+}
+.project-limit-text {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+.project-limit-current {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text);
+}
+.project-limit-current strong {
+  font-variant-numeric: tabular-nums;
 }
 
 .discovery-ready-text {

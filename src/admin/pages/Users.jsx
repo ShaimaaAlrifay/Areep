@@ -1,7 +1,8 @@
 import { KpiCard } from '../components/KpiCard'
 import { Funnel } from '../components/charts'
-import { EmptyState, NotTracked } from '../components/states'
+import { EmptyState } from '../components/states'
 import { DataGate, Panel, Section, useAdminData } from '../components/Section'
+import { UserUsageLookup } from '../components/UserUsageLookup'
 
 /* ============================================================
    Users in aggregate — and deliberately not a user list.
@@ -32,11 +33,13 @@ export function Users() {
           {loading ? <div className="ad-panel-loading" /> : metrics?.funnel?.length ? <Funnel steps={metrics.funnel} /> : <EmptyState />}
         </Panel>
 
-        <Panel title="قائمة المستخدمين">
-          <NotTracked
-            reason="اللوحة ما تستقبل بيانات تعريفية عن الأفراد — دالة التحليلات ترجّع أعدادًا ونِسبًا فقط."
-            note="هذا قرار خصوصية مقصود، مو نقص. أي بحث عن مستخدم معيّن لازم يكون عملية منفصلة ومسجّلة."
-          />
+        {/* Deliberately not a browsable list — the analytics function
+            above never returns anything identifying, on purpose (see its
+            own docstring). This is the "separate, logged lookup by id"
+            escape hatch for the rare real need: a support question, an
+            abuse report, or setting one person's AI usage override. */}
+        <Panel title="بحث عن مستخدم" hint="بالبريد الإلكتروني أو المعرّف — بحث فردي، مو قائمة قابلة للتصفح.">
+          <UserUsageLookup />
         </Panel>
       </Section>
     </DataGate>
